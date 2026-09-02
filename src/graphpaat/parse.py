@@ -36,8 +36,9 @@ class Node:
     kind: str            # file | class | function | method | rationale
     file: str            # relative to the corpus root
     line: int
-    origin: str = "ast"  # L3: provenance is recorded at creation, never inherited
+    origin: str = "ast"  # provenance is recorded at creation, never inherited
     text: str | None = None   # rationale nodes carry their docstring
+    group: int | None = None  # which community, filled in after clustering
 
 
 @dataclass

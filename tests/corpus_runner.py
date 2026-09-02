@@ -22,6 +22,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from graphpaat.cluster import communities, god_nodes
 from graphpaat.ids import Collisions
 from graphpaat.parse import parse_corpus_files
 from graphpaat.resolve import resolve
@@ -53,8 +54,16 @@ def measure(root: Path) -> dict:
     # requests, and no count already recorded here would have revealed it.
     node_ids = {n.id for n in nodes}
     dangling = [e for e in resolved if e.target not in node_ids]
+    from dataclasses import asdict
+    try:
+        _, groups = communities([asdict(n) for n in nodes], [asdict(e) for e in edges])
+        shape = {"groups": len(groups["groups"]), "ungrouped": groups["ungrouped"]}
+    except ImportError:
+        shape = {}
+
     return {
         "dangling_edges": len(dangling),
+        "shape": shape,
         "files_parsed": len(files),
         "files_failed": len(failed),
         "nodes_total": len(nodes),

@@ -31,15 +31,37 @@ from is 1.78 million.
 pip install -e .
 ```
 
-No runtime dependencies. The parser is Python's own `ast` module.
+The parser is Python's own `ast` module, so reading a repository needs nothing installed.
+`networkx` is used for grouping only; without it the graph still builds.
 
 ## Use
 
 ```bash
 graph-paat build /path/to/repo          # read the repo, write the graph
+graph-paat overview                     # what are the main parts of this codebase
 graph-paat vocab --contains auth        # what names exist in the graph
 graph-paat query login verify           # a map of those names and their links
 ```
+
+`overview` answers the question you ask first about an unfamiliar repository, and the one a
+map of individual symbols cannot. On Django:
+
+```
+182 groups (243 nodes in none)
+
+    2811  utils · ValidationError
+     849  db/models · QuerySet
+     564  db/migrations · MigrationAutodetector
+     380  contrib/admin · ModelAdmin
+     336  db/backends/oracle · DatabaseOperations
+
+most connected symbols:
+     QuerySet, Query, ValidationError, ImproperlyConfigured, GEOSGeometryBase
+```
+
+Groups come out of the call graph, not the folder layout — but each is named after the
+directory most of its members live in and its most connected symbol, because a group called
+`47` tells a reader nothing.
 
 `build` runs once. `vocab` and `query` read what it wrote. A full build of Django — 879
 files, 155,000 lines — takes about a second.

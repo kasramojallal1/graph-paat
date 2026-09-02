@@ -69,5 +69,9 @@
   "self-attribute-typed": 20,
   "self-method": 811,
   "unique in corpus": 4168
+ },
+ "shape": {
+  "groups": 152,
+  "ungrouped": 38
  }
 }

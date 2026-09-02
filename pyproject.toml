@@ -15,9 +15,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-# No runtime dependencies. The code lane uses Python's own `ast` module, which
-# is why a build costs nothing and gives the same answer every run.
-dependencies = []
+# Parsing uses Python's own `ast` module, so reading a repository needs nothing
+# installed. networkx is here for grouping only, and a build without it still
+# produces the full graph -- it just cannot say what the main parts are.
+dependencies = ["networkx>=3"]
 
 [project.urls]
 Homepage = "https://github.com/kasramojallal1/graph-paat"

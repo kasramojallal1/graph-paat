@@ -41,7 +41,8 @@ def out_path(root: Path, out: Path | None = None) -> Path:
 
 
 def write(root: Path, nodes: list[Node], edges: list[Edge],
-          collisions, failed: list[str], out: Path | None = None) -> Path:
+          collisions, failed: list[str], out: Path | None = None,
+          groups: dict | None = None, gods: list | None = None) -> Path:
     path = out_path(root, out)
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -49,6 +50,11 @@ def write(root: Path, nodes: list[Node], edges: list[Edge],
     payload = {
         "schema": SCHEMA,
         "corpus": str(root.resolve()),
+        # The shape of the codebase, computed once at build time so a query
+        # never has to cluster 50,000 nodes to answer one question.
+        "overview": {"groups": (groups or {}).get("groups", []),
+                     "ungrouped": (groups or {}).get("ungrouped", 0),
+                     "god_nodes": gods or []},
         "nodes": [asdict(n) for n in nodes],
         "edges": [asdict(e) for e in edges],
         # Everything the run could not do, in the artifact rather than the

@@ -8,6 +8,7 @@ from pathlib import Path
 from . import store
 from .ids import Collisions
 from .parse import parse_corpus_files
+from .cluster import communities, god_nodes
 from .resolve import resolve
 from .query import match, render, vocabulary
 
@@ -66,7 +67,27 @@ def build(root: Path, out: Path | None = None) -> int:
         for f in failed[:10]:
             print(f"  {f}")
 
-    path = store.write(root, nodes, edges, collisions, failed, out=out)
+    # Clustering needs the finished graph, so it runs last. A missing networkx
+    # degrades the build rather than failing it: the map still works without
+    # knowing the shape of the codebase.
+    from dataclasses import asdict
+    node_dicts = [asdict(n) for n in nodes]
+    edge_dicts = [asdict(e) for e in edges]
+    groups, gods = None, None
+    try:
+        membership, groups = communities(node_dicts, edge_dicts)
+        gods = god_nodes(node_dicts, edge_dicts)
+        for node in nodes:
+            node.group = membership.get(node.id)
+        print(f"\ngroups:    {len(groups['groups'])} "
+              f"({groups['ungrouped']} nodes in none)")
+        for g in groups["groups"][:5]:
+            print(f"  {g['size']:6d}  {g['name']}")
+    except ImportError as exc:
+        print(f"\nno grouping: {exc}")
+
+    path = store.write(root, nodes, edges, collisions, failed, out=out,
+                       groups=groups, gods=gods)
     print(f"\nwritten: {path}")
     return 0
 
@@ -94,8 +115,32 @@ def query(terms: list[str], out: Path | None, budget: int, depth: int) -> int:
     return 0
 
 
+def overview(out: Path | None, top: int) -> int:
+    """What are the main parts of this codebase, and what does it lean on?
+
+    The first question anyone asks of an unfamiliar repository, and the one a
+    map of individual symbols cannot answer.
+    """
+    data = store.read(Path("."), out=out).get("overview", {})
+    groups = data.get("groups", [])
+    if not groups:
+        print("no grouping in this graph - rebuild with networkx installed")
+        return 1
+    print(f"{len(groups)} groups ({data.get('ungrouped', 0)} nodes in none)\n")
+    for g in groups[:top]:
+        folders = ", ".join(g["folders"][:2])
+        print(f"  {g['size']:6d}  {g['name']}")
+        if folders and folders != ".":
+            print(f"          {folders}")
+    print("\nmost connected symbols:")
+    for n in data.get("god_nodes", [])[:top]:
+        print(f"  {n['connections']:6d}  {n['label']:32s} {n['file']}:L{n['line']}")
+    return 0
+
+
 USAGE = """usage:
   graph-paat build <path> [--out <dir>]
+  graph-paat overview [--top N] [--out <dir>]
   graph-paat vocab [--contains <text>] [--limit N] [--out <dir>]
   graph-paat query <term> [<term>...] [--budget N] [--depth N] [--out <dir>]"""
 
@@ -110,7 +155,7 @@ def _take(rest: list[str], flag: str, cast=str, default=None):
 
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
-    if not argv or argv[0] not in ("build", "vocab", "query"):
+    if not argv or argv[0] not in ("build", "vocab", "query", "overview"):
         print(USAGE, file=sys.stderr)
         return 2
     command, rest = argv[0], argv[1:]
@@ -118,6 +163,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if command == "build":
         return build(Path(rest[0] if rest else "."), out=out)
+    if command == "overview":
+        top, rest = _take(rest, "--top", int, 10)
+        return overview(out, top)
     if command == "vocab":
         contains, rest = _take(rest, "--contains")
         limit, rest = _take(rest, "--limit", int, 60)
