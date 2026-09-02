@@ -103,18 +103,20 @@ class Symbols:
 
 
 def _imported_prefix(name: str, parsed: ParsedFile, symbols: Symbols) -> str | None:
-    """`from graphpaat.ids import mint` tells us `mint` lives in ids.py."""
+    """`from graphpaat.ids import mint` tells us `mint` lives in ids.py.
+
+    The WHOLE module path matters, not its last segment. `from pydantic.v1.main
+    import BaseModel` names v1/main.py; matching on `main` alone found the
+    top-level main.py instead, so every v1 class appeared to inherit from the v2
+    BaseModel. Any package with a module name repeated in a subpackage hits this.
+    """
     dotted = parsed.imports.get(name)
     if not dotted:
         return None
     parts = dotted.split(".")
     if len(parts) < 2 or parts[-1] != name:
         return None
-    stem = normalise_path_part(parts[-2])
-    for prefix in symbols.by_file:
-        if prefix == stem or prefix.endswith(f"_{stem}"):
-            return prefix
-    return None
+    return _module_prefix(".".join(parts[:-1]), symbols)
 
 
 def _var_type(parsed: ParsedFile, variable: str) -> str | None:
@@ -230,10 +232,11 @@ def resolve_imports(files: list[ParsedFile], symbols: "Symbols") -> tuple[list[E
 
 
 def _module_prefix(dotted: str, symbols: "Symbols") -> str | None:
-    """Map `graphify.extractors.base` onto the file node `extractors_base`.
+    """Map `graphpaat.parse` onto the file node `parse`.
 
-    Matched from the most specific end so `graphify.cache` prefers `cache` over
-    any other file whose name merely ends the same way.
+    Tried from the most specific end: `pydantic.v1.main` prefers `v1_main` over
+    the top-level `main`, so a module name repeated inside a subpackage resolves
+    to the right one.
     """
     parts = [normalise_path_part(p) for p in dotted.split(".") if p]
     for start in range(len(parts)):

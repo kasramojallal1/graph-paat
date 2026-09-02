@@ -8,7 +8,7 @@
   "rationale_for": 218
  },
  "edges_total": 941,
- "edges_unresolved": 131,
+ "edges_unresolved": 133,
  "files_failed": 0,
  "files_parsed": 18,
  "id_collisions": 2,
@@ -24,7 +24,7 @@
  "refusals_by_reason": {
   "base class outside this corpus": 15,
   "called on self, but no such method on the class": 10,
-  "imports a module outside this corpus": 83,
+  "imports a module outside this corpus": 85,
   "name defined in 14 places, cannot choose": 4,
   "name defined in 3 places, cannot choose": 2,
   "name defined in 4 places, cannot choose": 13,
@@ -36,16 +36,16 @@
  },
  "resolved_by_rule": {
   "base class in corpus": 32,
-  "imported": 63,
-  "module in corpus": 51,
+  "imported": 95,
+  "module in corpus": 49,
   "receiver-typed": 7,
   "same file": 60,
   "self-attribute-typed": 1,
   "self-method": 61,
-  "unique in corpus": 33
+  "unique in corpus": 1
  },
  "shape": {
-  "groups": 11,
+  "groups": 10,
   "ungrouped": 0
  }
 }

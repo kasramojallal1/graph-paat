@@ -200,13 +200,11 @@ class _Walker(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        module = node.module or ""
+        module = self._absolute_module(node.module or "", node.level)
         for alias in node.names:
             local = alias.asname or alias.name
             self.parsed.imports[local] = f"{module}.{alias.name}" if module else alias.name
-        # One edge per import STATEMENT, not per imported name. graphify splits
-        # `import x` and `from x import y` into two relations; our own S1 notes
-        # flagged that as duplicating one fact, so we keep a single `imports`.
+        # One edge per import STATEMENT, not per imported name.
         if module:
             self.parsed.import_sites.append((module, node.lineno))
         self.generic_visit(node)
@@ -249,6 +247,26 @@ class _Walker(ast.NodeVisitor):
         self.generic_visit(node)
 
     # ---- helpers -----------------------------------------------------
+
+    def _absolute_module(self, module: str, level: int) -> str:
+        """Anchor a relative import to the package doing the importing.
+
+        `from .main import BaseModel` inside `v1/env_settings.py` means
+        `v1.main`, not the top-level `main`. Ignoring the level made pydantic's
+        v1 classes appear to inherit from the v2 BaseModel, because both files
+        are called main.py and the top-level one matched first.
+
+        `level` is the number of leading dots: 1 is this package, 2 is its
+        parent, and so on.
+        """
+        if not level:
+            return module
+        # The file's own prefix minus its module name is the package it lives
+        # in; each extra dot walks one more level up.
+        package = self.parsed.prefix.split("_")[:-1]
+        if level > 1:
+            package = package[: -(level - 1)] or []
+        return "_".join(package + ([module.replace(".", "_")] if module else []))
 
     def _scope_key(self) -> str:
         return ".".join(self.scope)

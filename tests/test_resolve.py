@@ -179,6 +179,38 @@ class TestContainerMethodNoise:
         assert ("app_go", "?connect", "receiver type unknown") in got
 
 
+class TestModulePaths:
+    """A module name repeated in a subpackage must not be confused with it."""
+
+    def test_dotted_import_uses_the_whole_path(self, corpus):
+        # pydantic has main.py and v1/main.py. Matching on the last segment
+        # made every v1 class appear to inherit from the v2 BaseModel.
+        root = corpus({
+            "main.py": "class BaseModel:\n    pass\n",
+            "v1/main.py": "class BaseModel:\n    pass\n",
+            "v1/settings.py": ("from pkg.v1.main import BaseModel\n"
+                               "class Settings(BaseModel):\n    pass\n")})
+        assert ("v1_settings_settings", "v1_main_basemodel") in links(root, "inherits")
+
+    def test_relative_import_is_anchored_to_its_own_package(self, corpus):
+        # `from .main import X` inside v1/ means v1.main, not the top-level one.
+        root = corpus({
+            "main.py": "class BaseModel:\n    pass\n",
+            "v1/main.py": "class BaseModel:\n    pass\n",
+            "v1/settings.py": ("from .main import BaseModel\n"
+                               "class Settings(BaseModel):\n    pass\n")})
+        assert ("v1_settings_settings", "v1_main_basemodel") in links(root, "inherits")
+
+    def test_a_loose_suffix_match_no_longer_picks_the_wrong_file(self, corpus):
+        # numpy: `from .exceptions import X` in the top package resolved to
+        # core/exceptions.py because that prefix ends with "_exceptions".
+        root = corpus({
+            "exceptions.py": "def boom():\n    pass\n",
+            "core/exceptions.py": "def boom():\n    pass\n",
+            "app.py": "from .exceptions import boom\ndef go():\n    boom()\n"})
+        assert ("app_go", "exceptions_boom") in links(root)
+
+
 class TestInheritance:
     """What a class extends is part of what it is."""
 

@@ -1,14 +1,14 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 2881,
+  "calls": 2841,
   "contains": 2256,
-  "imports": 1055,
+  "imports": 1082,
   "inherits": 311,
   "rationale_for": 938
  },
- "edges_total": 7441,
- "edges_unresolved": 2109,
+ "edges_total": 7428,
+ "edges_unresolved": 2046,
  "files_failed": 0,
  "files_parsed": 104,
  "id_collisions": 45,
@@ -22,22 +22,22 @@
  },
  "nodes_total": 3298,
  "refusals_by_reason": {
-  "base class outside this corpus": 134,
+  "base class outside this corpus": 127,
   "called on self, but no such method on the class": 39,
-  "imports a module outside this corpus": 569,
-  "name defined in 10 places, cannot choose": 19,
+  "imports a module outside this corpus": 677,
+  "name defined in 10 places, cannot choose": 1,
   "name defined in 121 places, cannot choose": 40,
   "name defined in 15 places, cannot choose": 1,
-  "name defined in 2 places, cannot choose": 182,
+  "name defined in 2 places, cannot choose": 86,
   "name defined in 2 scopes of this file, cannot choose": 24,
   "name defined in 26 places, cannot choose": 3,
-  "name defined in 3 places, cannot choose": 138,
+  "name defined in 3 places, cannot choose": 96,
   "name defined in 3 scopes of this file, cannot choose": 18,
-  "name defined in 4 places, cannot choose": 67,
+  "name defined in 4 places, cannot choose": 62,
   "name defined in 4 scopes of this file, cannot choose": 1,
-  "name defined in 5 places, cannot choose": 5,
+  "name defined in 5 places, cannot choose": 3,
   "name defined in 5 scopes of this file, cannot choose": 2,
-  "name defined in 6 places, cannot choose": 3,
+  "name defined in 6 places, cannot choose": 2,
   "name defined in 7 places, cannot choose": 5,
   "not defined in this corpus (builtin or third party)": 955,
   "python builtin": 1982,
@@ -46,17 +46,17 @@
   "receiver typed, but no such method in the corpus": 416
  },
  "resolved_by_rule": {
-  "base class in corpus": 177,
-  "imported": 223,
-  "module in corpus": 486,
+  "base class in corpus": 184,
+  "imported": 325,
+  "module in corpus": 405,
   "receiver-typed": 36,
   "same file": 515,
   "self-attribute-typed": 7,
   "self-method": 446,
-  "unique in corpus": 248
+  "unique in corpus": 270
  },
  "shape": {
-  "groups": 35,
+  "groups": 32,
   "ungrouped": 2
  }
 }
