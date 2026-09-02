@@ -103,3 +103,32 @@ class TestGodNodes:
         nodes, edges = graph(root)
         ranked = {n["label"]: n["connections"] for n in god_nodes(nodes, edges)}
         assert ranked.get("go", 0) <= 1
+
+
+class TestGroupNaming:
+    def test_an_exception_never_names_a_group(self, corpus):
+        # An exception is connected to everything that raises it, so it wins on
+        # degree while describing no subsystem. Django's largest group was
+        # named ValidationError, then ImproperlyConfigured -- which does not
+        # end in Error, so the name alone was not enough to spot it.
+        root = corpus({"m.py": (
+            "class ImproperlyConfigured(Exception):\n    pass\n"
+            "class Engine:\n"
+            "    def run(self):\n        boom()\n"
+            "def boom():\n    raise ImproperlyConfigured()\n"
+            "def a():\n    boom()\n"
+            "def b():\n    boom()\n")})
+        nodes, edges = graph(root)
+        _, summary = communities(nodes, edges)
+        assert all("ImproperlyConfigured" not in g["name"] for g in summary["groups"])
+
+    def test_a_class_names_a_group_before_a_function(self, corpus):
+        root = corpus({"m.py": (
+            "class Engine:\n"
+            "    def run(self):\n        helper()\n"
+            "def helper():\n    pass\n"
+            "def one():\n    helper()\n"
+            "def two():\n    helper()\n")})
+        nodes, edges = graph(root)
+        _, summary = communities(nodes, edges)
+        assert any("Engine" in g["name"] for g in summary["groups"])

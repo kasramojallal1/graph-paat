@@ -112,6 +112,30 @@ def communities(nodes: list[dict], edges: list[dict],
     return membership, {"groups": summaries, "ungrouped": ungrouped}
 
 
+# An exception is connected to everything that raises it, so it wins on degree
+# while describing no subsystem. Django's largest group was named after
+# ValidationError, and its template group after TemplateSyntaxError -- both
+# true of the connection count and useless to a reader.
+_EXCEPTION_SUFFIXES = ("Error", "Exception", "Warning")
+
+
+def _is_exception(node: dict) -> bool:
+    names = [node["label"], *(node.get("bases") or [])]
+    return any(n.endswith(_EXCEPTION_SUFFIXES) or n in ("Exception", "BaseException")
+               for n in names)
+
+
+def _nameability(node: dict) -> int:
+    """How well a symbol would name the group it hubs. Higher is better.
+
+    A class names a subsystem better than a function does: `QuerySet` says what
+    a region is about, `receiver` does not.
+    """
+    if _is_exception(node):
+        return 0
+    return 2 if node["kind"] == "class" else 1
+
+
 def _summarise(number: int, members: set, by_id: dict, degree: dict) -> dict:
     real = [by_id[m] for m in members if m in by_id and by_id[m]["kind"] != "rationale"]
     # A file node is connected to everything it contains, so it wins on degree
@@ -129,7 +153,8 @@ def _summarise(number: int, members: set, by_id: dict, degree: dict) -> dict:
         top_folder, count = folders.most_common(1)[0]
         if real and count / len(real) >= 0.4:
             folder = top_folder
-    hub = max(symbols, key=lambda n: (degree.get(n["id"], 0), n["id"]), default=None)
+    hub = max(symbols, key=lambda n: (_nameability(n), degree.get(n["id"], 0), n["id"]),
+              default=None)
     name = folder if folder not in (".", "") else ""
     if hub is not None:
         name = f"{name} · {hub['label']}" if name else hub["label"]

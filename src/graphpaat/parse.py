@@ -39,6 +39,7 @@ class Node:
     origin: str = "ast"  # provenance is recorded at creation, never inherited
     text: str | None = None   # rationale nodes carry their docstring
     group: int | None = None  # which community, filled in after clustering
+    bases: list[str] | None = None   # class nodes: what it inherits from
 
 
 @dataclass
@@ -112,7 +113,8 @@ class _Walker(ast.NodeVisitor):
         # without a second pass. The file node is the outermost container.
         self.container: list[str] = [parsed.prefix]
 
-    def _emit(self, label: str, kind: str, node: ast.AST) -> str:
+    def _emit(self, label: str, kind: str, node: ast.AST,
+              bases: list[str] | None = None) -> str:
         nid = mint(self.parsed.prefix, label, self.scope)
         self.parsed.edges.append(Edge(
             source=self.container[-1], target=nid, relation="contains",
@@ -120,7 +122,7 @@ class _Walker(ast.NodeVisitor):
         ))
         self.parsed.nodes.append(Node(
             id=nid, label=label, kind=kind,
-            file=self.parsed.path, line=node.lineno,
+            file=self.parsed.path, line=node.lineno, bases=bases,
         ))
         return nid
 
@@ -146,7 +148,7 @@ class _Walker(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self.parsed.defined_classes.add(node.name)
-        nid = self._emit(node.name, "class", node)
+        nid = self._emit(node.name, "class", node, bases=_base_names(node))
         self._emit_docstring(nid, node)
         self.scope.append(node.name)
         self.container.append(nid)
@@ -268,6 +270,23 @@ class _Walker(ast.NodeVisitor):
             if name in self.parsed.defined_classes:
                 return name
         return None
+
+
+def _base_names(node: ast.ClassDef) -> list[str]:
+    """What a class inherits from, by name.
+
+    Recorded because a name alone cannot tell you what a class IS. Django's
+    `ImproperlyConfigured` does not end in Error, but it inherits from
+    Exception -- and an exception is connected to everything that raises it,
+    which makes it a bad name for the region it happens to hub.
+    """
+    names = []
+    for base in node.bases:
+        if isinstance(base, ast.Name):
+            names.append(base.id)
+        elif isinstance(base, ast.Attribute):
+            names.append(base.attr)
+    return names
 
 
 def _is_property_accessor(node) -> bool:
