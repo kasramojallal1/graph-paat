@@ -8,22 +8,27 @@ graph of what is in it and how those things connect, and answers a question with
 hundred tokens instead of a few million.
 
 ```
-$ graph-paat query MinHashLSH
+$ graph-paat query QuerySet
 
-graph: 11020 nodes | seeds: 1 | shown: 1 | ~185 tokens
+graph: 15709 nodes | seeds: 1 | shown: 1 | ~138 tokens
 
-MinHashLSH    graphify/_minhash.py:L84    [class, ast]
-    part of       _minhash.py    graphify/_minhash.py:L1
-    rationale_for [claim] "Band-hashing LSH — same API as datasketch.MinHashLSH..."
-    contains      __init__       graphify/_minhash.py:L87
-    contains      insert         graphify/_minhash.py:L92
-    contains      query          graphify/_minhash.py:L101
-    called by     deduplicate_entities    graphify/dedup.py:L503
+QuerySet    db/models/query.py:L293    [class]    part of: db/models · QuerySet
+    part of     query.py        db/models/query.py:L1
+    contains    order_by        db/models/query.py:L1695
+    contains    values_list     db/models/query.py:L1364
+    contains    bulk_create     db/models/query.py:L757
+    contains    select_related  db/models/query.py:L1575
+    contains    delete          db/models/query.py:L1164
+    ... 103 more links (raise --per-node)
 ```
 
-That answer is 185 tokens: where the class lives, what it claims about itself, what is inside
-it, and who uses it. Reading the file it describes costs 1,035 tokens. The repository it came
-from is 1.78 million.
+That is Django's `QuerySet` in 138 tokens: where it lives, which part of the codebase it
+belongs to, and the seven of its 111 methods that the rest of the code actually uses. Reading
+`query.py` instead costs about 22,000 tokens. Django is 155,000 lines.
+
+Which seven is the point. A class with 111 methods cannot be summarised by the first ten
+alphabetically — that gives `_add_hints` and `_batched_insert`. Links are ranked by how
+connected their target is, so the answer is `order_by` and `bulk_create`.
 
 ## Install
 

@@ -108,10 +108,11 @@ def vocab(out: Path | None, contains: str | None, limit: int) -> int:
     return 0
 
 
-def query(terms: list[str], out: Path | None, budget: int, depth: int) -> int:
+def query(terms: list[str], out: Path | None, budget: int, depth: int,
+          seeds_wanted: int, per_node: int) -> int:
     graph = store.read(Path("."), out=out)
-    seeds = match(graph, terms)
-    print(render(graph, seeds, budget=budget, depth=depth))
+    seeds, more = match(graph, terms, limit=seeds_wanted)
+    print(render(graph, seeds, budget=budget, depth=depth, more=more, per_node=per_node))
     return 0
 
 
@@ -142,7 +143,8 @@ USAGE = """usage:
   graph-paat build <path> [--out <dir>]
   graph-paat overview [--top N] [--out <dir>]
   graph-paat vocab [--contains <text>] [--limit N] [--out <dir>]
-  graph-paat query <term> [<term>...] [--budget N] [--depth N] [--out <dir>]"""
+  graph-paat query <term> [<term>...] [--budget N] [--depth N] [--seeds N]
+                                     [--per-node N] [--out <dir>]"""
 
 
 def _take(rest: list[str], flag: str, cast=str, default=None):
@@ -172,10 +174,12 @@ def main(argv: list[str] | None = None) -> int:
         return vocab(out, contains, limit)
     budget, rest = _take(rest, "--budget", int, 2000)
     depth, rest = _take(rest, "--depth", int, 2)
+    seeds_wanted, rest = _take(rest, "--seeds", int, 6)
+    per_node, rest = _take(rest, "--per-node", int, 10)
     if not rest:
         print(USAGE, file=sys.stderr)
         return 2
-    return query(rest, out, budget, depth)
+    return query(rest, out, budget, depth, seeds_wanted, per_node)
 
 
 if __name__ == "__main__":

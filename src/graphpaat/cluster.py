@@ -120,7 +120,15 @@ def _summarise(number: int, members: set, by_id: dict, degree: dict) -> dict:
     # Where these things live. The most common directory names the group far
     # better than a number does, and it costs nothing to compute.
     folders = Counter(str(PurePosixPath(n["file"]).parent) for n in real)
-    folder = folders.most_common(1)[0][0] if folders else "?"
+    # Only name a group after a directory when most of it actually lives there.
+    # A large group spans many folders, and naming it after the commonest one
+    # labelled an admin view as `db/backends/sqlite3` -- true of the hub, false
+    # of the member reading it.
+    folder = ""
+    if folders:
+        top_folder, count = folders.most_common(1)[0]
+        if real and count / len(real) >= 0.4:
+            folder = top_folder
     hub = max(symbols, key=lambda n: (degree.get(n["id"], 0), n["id"]), default=None)
     name = folder if folder not in (".", "") else ""
     if hub is not None:
