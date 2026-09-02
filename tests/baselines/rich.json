@@ -4,10 +4,11 @@
   "calls": 1676,
   "contains": 1069,
   "imports": 645,
+  "inherits": 117,
   "rationale_for": 676
  },
- "edges_total": 4066,
- "edges_unresolved": 803,
+ "edges_total": 4183,
+ "edges_unresolved": 851,
  "files_failed": 0,
  "files_parsed": 78,
  "id_collisions": 10,
@@ -21,6 +22,7 @@
  },
  "nodes_total": 1823,
  "refusals_by_reason": {
+  "base class outside this corpus": 48,
   "called on self, but no such method on the class": 32,
   "imports a module outside this corpus": 255,
   "name defined in 2 places, cannot choose": 30,
@@ -40,6 +42,7 @@
   "receiver typed, but no such method in the corpus": 70
  },
  "resolved_by_rule": {
+  "base class in corpus": 69,
   "imported": 306,
   "module in corpus": 390,
   "receiver-typed": 232,
@@ -49,7 +52,7 @@
   "unique in corpus": 140
  },
  "shape": {
-  "groups": 23,
+  "groups": 22,
   "ungrouped": 0
  }
 }

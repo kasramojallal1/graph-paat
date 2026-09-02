@@ -84,8 +84,8 @@ Nothing here calls a model, needs an API key, or gives a different answer on two
 ## What it records
 
 **Nodes** — every file, class, function, method, and docstring.
-**Edges** — `contains`, `calls`, `imports`, and `rationale_for` (a docstring explaining the
-thing it sits on).
+**Edges** — `contains`, `calls`, `imports`, `inherits`, and `rationale_for` (a docstring
+explaining the thing it sits on).
 
 **And what it could not work out.** Every call the resolver refuses is counted with a reason,
 and where a plausible target exists it is drawn as an unresolved edge:

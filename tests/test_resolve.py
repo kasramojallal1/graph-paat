@@ -179,6 +179,52 @@ class TestContainerMethodNoise:
         assert ("app_go", "?connect", "receiver type unknown") in got
 
 
+class TestInheritance:
+    """What a class extends is part of what it is."""
+
+    def test_base_in_the_same_file(self, corpus):
+        root = corpus({"m.py": "class Base:\n    pass\nclass Child(Base):\n    pass\n"})
+        assert ("m_child", "m_base") in links(root, "inherits")
+
+    def test_base_imported_from_another_file(self, corpus):
+        root = corpus({
+            "lib.py": "class Base:\n    pass\n",
+            "app.py": "from lib import Base\nclass Child(Base):\n    pass\n"})
+        assert ("app_child", "lib_base") in links(root, "inherits")
+
+    def test_dotted_base_resolves_by_its_last_name(self, corpus):
+        # `class Poll(models.Model)` names Model through a module.
+        root = corpus({
+            "models.py": "class Model:\n    pass\n",
+            "app.py": "import models\nclass Poll(models.Model):\n    pass\n"})
+        assert ("app_poll", "models_model") in links(root, "inherits")
+
+    def test_multiple_bases_all_recorded(self, corpus):
+        root = corpus({"m.py": (
+            "class A:\n    pass\nclass B:\n    pass\n"
+            "class C(A, B):\n    pass\n")})
+        got = links(root, "inherits")
+        assert ("m_c", "m_a") in got and ("m_c", "m_b") in got
+
+    def test_base_outside_the_corpus_is_drawn_unresolved(self, corpus):
+        # Saying nothing would imply the class extends nothing.
+        root = corpus({"m.py": "class Boom(Exception):\n    pass\n"})
+        got, _ = edges_of(root, "inherits", resolved=False)
+        assert ("m_boom", "?Exception",
+                "base class outside this corpus (builtin or third party)") in got
+
+    def test_inheritance_edges_never_dangle(self, corpus):
+        root = corpus({
+            "lib.py": "class Base:\n    pass\n",
+            "app.py": "from lib import Base\nclass Child(Base):\n    pass\n"})
+        files, _ = parse_corpus_files(root)
+        ids = {n.id for p in files for n in p.nodes}
+        edges, _ = resolve(files)
+        for e in edges:
+            if e.resolved:
+                assert e.target in ids
+
+
 class TestImports:
     def test_module_inside_the_corpus_resolves_to_its_file(self, corpus):
         root = corpus({"lib.py": "x = 1\n", "app.py": "from lib import x\n"})

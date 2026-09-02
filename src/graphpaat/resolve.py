@@ -137,6 +137,66 @@ def _target_for(symbols: Symbols, cls: str | None, method: str) -> str | None:
     return symbols.method_of(prefix, cls, method) if prefix else None
 
 
+def resolve_inheritance(files: list[ParsedFile], symbols: "Symbols") -> tuple[list[Edge], Counter]:
+    """`class Poll(Model)` becomes an edge from Poll to Model.
+
+    Parsing already records what each class inherits from. Without turning that
+    into edges, "what subclasses Model" -- one of the most common questions
+    about an object-oriented codebase -- has no answer at all.
+
+    A base outside the corpus (`Exception`, `object`, a third-party class)
+    cannot point at a node. It is drawn unresolved with the name, because what
+    a class extends is part of what it IS, and saying nothing would imply it
+    extends nothing.
+    """
+    edges: list[Edge] = []
+    reasons: Counter = Counter()
+    seen: set[tuple] = set()
+
+    for parsed in files:
+        for node in parsed.nodes:
+            if node.kind != "class" or not node.bases:
+                continue
+            for base in node.bases:
+                if (node.id, base) in seen:
+                    continue
+                seen.add((node.id, base))
+                target = _class_target(base, parsed, symbols)
+                if target and target != node.id:
+                    edges.append(Edge(source=node.id, target=target, relation="inherits",
+                                      file=node.file, line=node.line,
+                                      reason="base class in corpus"))
+                elif not target:
+                    reasons["base class outside this corpus"] += 1
+                    edges.append(Edge(
+                        source=node.id, target=f"?{base}", relation="inherits",
+                        file=node.file, line=node.line, resolved=False,
+                        reason="base class outside this corpus (builtin or third party)"))
+    return edges, reasons
+
+
+def _class_target(name: str, parsed: ParsedFile, symbols: "Symbols") -> str | None:
+    """Find the class node a base-class name refers to, or None.
+
+    Same evidence as a call: defined here, imported here, or unique by name.
+    """
+    local = symbols.in_file.get(parsed.prefix, {}).get(name, [])
+    for candidate in local:
+        if candidate in symbols.ids:
+            return candidate
+    prefix = _imported_prefix(name, parsed, symbols)
+    if prefix:
+        candidate = mint(prefix, name)
+        if candidate in symbols.ids:
+            return candidate
+    homes = symbols.class_home.get(name)
+    if homes and len(homes) == 1:
+        candidate = mint(homes[0], name)
+        if candidate in symbols.ids:
+            return candidate
+    return None
+
+
 def resolve_imports(files: list[ParsedFile], symbols: "Symbols") -> tuple[list[Edge], Counter]:
     """One edge per import statement, from the importing file to the imported one.
 
@@ -277,4 +337,8 @@ def resolve(files: list[ParsedFile]) -> tuple[list[Edge], Counter]:
     import_edges, import_reasons = resolve_imports(files, symbols)
     edges.extend(import_edges)
     reasons.update(import_reasons)
+
+    inherit_edges, inherit_reasons = resolve_inheritance(files, symbols)
+    edges.extend(inherit_edges)
+    reasons.update(inherit_reasons)
     return edges, reasons

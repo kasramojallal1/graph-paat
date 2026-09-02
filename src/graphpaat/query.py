@@ -29,13 +29,16 @@ from pathlib import PurePosixPath
 
 # How a relation reads when you arrive from the other end.
 INVERSE = {"contains": "part of", "calls": "called by", "imports": "imported by",
-           "rationale_for": "explains"}
+           "rationale_for": "explains", "inherits": "subclassed by"}
 
 # Most interesting first. What a thing DOES beats what it holds; a docstring is
 # context rather than structure, so it comes last but is never dropped -- it is
 # often the only statement of intent in the whole map.
-RELATION_ORDER = {"calls": 0, "called by": 1, "imports": 2, "imported by": 3,
-                  "part of": 4, "contains": 5, "rationale_for": 6, "explains": 6}
+# What a class IS comes before what it does: inheritance decides behaviour that
+# no call edge shows.
+RELATION_ORDER = {"inherits": 0, "subclassed by": 1, "calls": 2, "called by": 3,
+                  "imports": 4, "imported by": 5, "part of": 6, "contains": 7,
+                  "rationale_for": 8, "explains": 8}
 
 # Words that describe the RELATION being asked about, not a symbol to look for.
 # "what calls login" must not seed on `calls`, which is a method name in most
