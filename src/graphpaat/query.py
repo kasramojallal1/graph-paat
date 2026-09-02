@@ -25,6 +25,7 @@ report hubs and stop there.
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import PurePosixPath
 
 # How a relation reads when you arrive from the other end.
 INVERSE = {"contains": "part of", "calls": "called by", "imports": "imported by",
@@ -54,6 +55,19 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // CHARS_PER_TOKEN)
 
 
+def ranked_names(graph: dict) -> list[str]:
+    """Names, most connected first.
+
+    Alphabetical order buries the answer: asked for names containing "backend",
+    Django gave `AllowAllUsersModelBackend` while `load_backend` -- the function
+    that actually chooses one -- sat past the limit. An agent reads the top of
+    this list, so the top must be worth reading.
+    """
+    degree = _degrees(graph)
+    index = vocabulary(graph)
+    return sorted(index, key=lambda n: (-max(degree.get(i, 0) for i in index[n]), n))
+
+
 def vocabulary(graph: dict) -> dict[str, list[str]]:
     """Every name in the graph, mapped to the nodes carrying it."""
     index: dict[str, list[str]] = defaultdict(list)
@@ -76,35 +90,83 @@ def _degrees(graph: dict) -> dict[str, int]:
 def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int]:
     """Rank nodes matching the terms. Returns (seeds, how many more matched).
 
-    Tiers: exact name, then case-insensitive, then substring. Within a tier the
-    better-connected node comes first -- when a name is used in thirty places,
-    the one the rest of the codebase leans on is the likely subject.
+    Three signals, in order.
+
+    **Exactness.** An exact name beats a case-insensitive one beats a substring.
+
+    **Agreement between terms.** Django has a `filter` in the template library
+    and a `filter` on QuerySet. Asked for "QuerySet filter", ranking each term
+    alone put the template one first, because it has more connections. But the
+    other term's match lives in the ORM, and a question's words are about one
+    thing -- so a candidate sharing a group with another term's candidates wins.
+
+    **Connectedness.** Among equals, the symbol the codebase leans on.
     """
     index = vocabulary(graph)
     lowered: dict[str, list[str]] = defaultdict(list)
     for name, ids in index.items():
         lowered[name.lower()].extend(ids)
     degree = _degrees(graph)
+    node_of = {n["id"]: n for n in graph["nodes"]}
+    group_of = {i: n.get("group") for i, n in node_of.items()}
+
+    def place(nid: str) -> tuple:
+        """Where a symbol sits, coarse to fine: (group, directory, file)."""
+        n = node_of.get(nid)
+        if n is None:
+            return (None, None, None)
+        return (n.get("group"), str(PurePosixPath(n["file"]).parent), n["file"])
 
     real_terms = [t for t in terms if t.lower() not in INTENT_WORDS] or terms
     tiers: dict[str, int] = {}
+    by_term: dict[str, set[str]] = defaultdict(set)
+    exact_by_term: dict[str, set[str]] = defaultdict(set)
 
-    def offer(ids, tier):
+    def offer(term, ids, tier):
         for i in ids:
             if tier < tiers.get(i, 99):
                 tiers[i] = tier
+            by_term[term].add(i)
+            if tier == 0:
+                exact_by_term[term].add(i)
 
     for term in real_terms:
         if term in index:
-            offer(index[term], 0)
+            offer(term, index[term], 0)
         if term.lower() in lowered:
-            offer(lowered[term.lower()], 1)
+            offer(term, lowered[term.lower()], 1)
         needle = term.lower()
         for name, ids in index.items():
             if needle in name.lower():
-                offer(ids, 2)
+                offer(term, ids, 2)
 
-    ranked = sorted(tiers, key=lambda i: (tiers[i], -degree.get(i, 0), i))
+    # Agreement is measured against EXACT matches only. Using every match made
+    # the signal useless: "queryset" appears as a substring in names all over
+    # Django, so every group agreed with every other and nothing was ranked.
+    #
+    # Three levels, because one is not enough. A group can be huge -- Django's
+    # largest holds 2,811 nodes -- and inside it "same group" separates nothing.
+    # Same file is the sharpest signal and same directory sits between them.
+    places_by_term = {t: {place(i) for i in ids} for t, ids in exact_by_term.items()}
+
+    def agreement(nid: str) -> int:
+        if len(real_terms) < 2:
+            return 0
+        g, folder, file = place(nid)
+        mine = {t for t, ids in by_term.items() if nid in ids}
+        score = 0
+        for term, places in places_by_term.items():
+            if term in mine:
+                continue
+            if any(p[2] == file for p in places):
+                score += 4          # same file
+            elif any(p[1] == folder for p in places):
+                score += 2          # same directory
+            elif g is not None and any(p[0] == g for p in places):
+                score += 1          # same group
+        return score
+
+    ranked = sorted(tiers, key=lambda i: (tiers[i], -agreement(i), -degree.get(i, 0), i))
     return ranked[:limit], max(0, len(ranked) - limit)
 
 
@@ -163,8 +225,17 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
            more: int = 0, per_node: int = 10) -> str:
     """The map an agent reads. Names, places, relations -- never source code."""
     nodes = {n["id"]: n for n in graph["nodes"]}
-    group_names = {g["group"]: g["name"]
-                   for g in graph.get("overview", {}).get("groups", [])}
+    # A group holding a large share of the codebase is not a part of it. Django's
+    # biggest holds 2,811 nodes and is named after ValidationError, which tells a
+    # reader of an admin view nothing true.
+    all_groups = graph.get("overview", {}).get("groups", [])
+    total = max(1, len(graph["nodes"]))
+    # Both a share and a floor. A pure ratio misjudges small graphs: in a
+    # six-node corpus a group of three is half of it and would be suppressed,
+    # though three things are perfectly meaningful to name.
+    # `.get` so a graph from an older build still renders rather than failing.
+    group_names = {g["group"]: g["name"] for g in all_groups
+                   if not (g.get("size", 0) > 200 and g.get("size", 0) / total >= 0.15)}
     degree = _degrees(graph)
     found, travelled, hubs = neighbourhood(graph, seeds, depth)
 

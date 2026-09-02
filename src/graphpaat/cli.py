@@ -10,7 +10,7 @@ from .ids import Collisions
 from .parse import parse_corpus_files
 from .cluster import communities, god_nodes
 from .resolve import resolve
-from .query import match, render, vocabulary
+from .query import match, ranked_names, render, vocabulary
 
 
 def build(root: Path, out: Path | None = None) -> int:
@@ -97,10 +97,11 @@ def vocab(out: Path | None, contains: str | None, limit: int) -> int:
     against them (D9). Optionally filtered, because 11,000 names is a lot to
     hand a model that only needs the ones near one topic."""
     graph = store.read(Path("."), out=out)
-    names = sorted(vocabulary(graph))
+    names = ranked_names(graph)
     if contains:
         names = [n for n in names if contains.lower() in n.lower()]
-    print(f"{len(names)} names" + (f" containing '{contains}'" if contains else ""))
+    print(f"{len(names)} names" + (f" containing '{contains}'" if contains else "")
+          + ", most connected first")
     for name in names[:limit]:
         print(f"  {name}")
     if len(names) > limit:

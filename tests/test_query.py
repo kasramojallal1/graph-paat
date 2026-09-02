@@ -184,7 +184,39 @@ class TestRanking:
 
     def test_group_context_is_shown_when_known(self, corpus, tmp_path):
         graph = graph_of(corpus(SAMPLE), tmp_path / "out")
-        graph["overview"] = {"groups": [{"group": 0, "name": "rendering \u00b7 Widget"}]}
+        graph["overview"] = {"groups": [
+            {"group": 0, "name": "rendering \u00b7 Widget", "size": 3}]}
         for n in graph["nodes"]:
             n["group"] = 0
         assert "part of: rendering" in render(graph, match(graph, ["Widget"])[0], budget=2000)
+
+
+class TestGroupLabels:
+    def test_a_group_covering_most_of_the_corpus_is_not_used_as_a_label(self, corpus, tmp_path):
+        # Django's largest group holds 2,811 nodes and is named after
+        # ValidationError. Telling the reader of an admin view that it is "part
+        # of ValidationError" is worse than saying nothing.
+        graph = graph_of(corpus(SAMPLE), tmp_path / "out")
+        # Above both the absolute floor and the share threshold.
+        graph["overview"] = {"groups": [{"group": 0, "name": "everything", "size": 5000}]}
+        for n in graph["nodes"]:
+            n["group"] = 0
+        assert "part of: everything" not in render(graph, match(graph, ["Widget"])[0],
+                                                  budget=2000)
+
+
+class TestTermAgreement:
+    def test_terms_in_one_question_reinforce_each_other(self, corpus, tmp_path):
+        # Two symbols share a name; the one beside the other term wins, even
+        # though the unrelated one is better connected.
+        graph = graph_of(corpus({
+            "orm/query.py": ("class QuerySet:\n    pass\n"
+                             "def filter(qs):\n    pass\n"),
+            "web/tags.py": ("def filter(x):\n    pass\n"
+                            "def a():\n    filter(1)\n"
+                            "def b():\n    filter(2)\n"
+                            "def c():\n    filter(3)\n")}), tmp_path / "out")
+        alone, _ = match(graph, ["filter"])
+        assert alone[0] == "web_tags_filter"          # better connected wins alone
+        together, _ = match(graph, ["QuerySet", "filter"])
+        assert "orm_query_filter" in together[:2]     # the neighbour wins together
