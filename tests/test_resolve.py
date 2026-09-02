@@ -165,3 +165,43 @@ class TestImports:
                        "app.py": "from lib import a, b\n"})
         got, _ = edges_of(root, "imports")
         assert len([e for e in got if e[0] == "app"]) == 1
+
+
+class TestInvariants:
+    """Properties that must hold for any corpus, not facts about one."""
+
+    def test_a_resolved_edge_never_points_at_a_missing_node(self, corpus):
+        # Shipped bug: the same-file rule rebuilt an id from prefix + name, but
+        # a nested function's real id carries its enclosing chain, so the edge
+        # pointed at an id nobody owned.
+        root = corpus({"m.py": (
+            "def outer():\n"
+            "    def helper():\n"
+            "        pass\n"
+            "    helper()\n")})
+        files, _ = parse_corpus_files(root)
+        ids = {n.id for p in files for n in p.nodes}
+        edges, _ = resolve(files)
+        for edge in edges:
+            if edge.resolved:
+                assert edge.target in ids, f"{edge.source} -> {edge.target} points nowhere"
+
+    def test_nested_call_resolves_to_the_nested_function(self, corpus):
+        root = corpus({"m.py": (
+            "def outer():\n"
+            "    def helper():\n"
+            "        pass\n"
+            "    helper()\n")})
+        assert ("m_outer", "m_outer_helper") in links(root)
+
+    def test_same_name_in_two_scopes_of_one_file_is_refused(self, corpus):
+        root = corpus({"m.py": (
+            "def a():\n"
+            "    def helper():\n"
+            "        pass\n"
+            "def b():\n"
+            "    def helper():\n"
+            "        pass\n"
+            "    helper()\n")})
+        _, reasons = edges_of(root)
+        assert any("scopes of this file" in r for r in reasons)

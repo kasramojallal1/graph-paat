@@ -47,7 +47,14 @@ def measure(root: Path) -> dict:
     edges.extend(call_edges)
 
     resolved = [e for e in call_edges if e.resolved]
+    # An invariant, not a statistic. A resolved edge must point at a node that
+    # exists; one that does not is a link an agent will follow to nothing. This
+    # was 6.2% of torch's resolved edges before it was found by hand-checking
+    # requests, and no count already recorded here would have revealed it.
+    node_ids = {n.id for n in nodes}
+    dangling = [e for e in resolved if e.target not in node_ids]
     return {
+        "dangling_edges": len(dangling),
         "files_parsed": len(files),
         "files_failed": len(failed),
         "nodes_total": len(nodes),

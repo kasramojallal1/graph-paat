@@ -1,4 +1,5 @@
 {
+ "dangling_edges": 0,
  "edges_by_relation": {
   "calls": 324,
   "contains": 284,

@@ -48,7 +48,11 @@ class Symbols:
         self.label_to_ids: dict[str, list[str]] = defaultdict(list)
         self.class_home: dict[str, list[str]] = defaultdict(list)   # ClassName -> [prefix]
         self.methods: dict[str, set[str]] = defaultdict(set)        # prefix::Class -> {ids}
-        self.top_level: dict[str, set[str]] = defaultdict(set)      # prefix -> {label}
+        # prefix -> {label: [real node ids]}. Real ids, not reconstructed ones:
+        # a nested function's id carries its enclosing chain, so rebuilding it
+        # from prefix+label alone produced an id nobody owned. That was up to
+        # 6.2% of resolved edges pointing at nodes that do not exist.
+        self.in_file: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
 
         for parsed in files:
             self.by_file[parsed.prefix] = parsed
@@ -60,7 +64,7 @@ class Symbols:
                 if node.kind == "class":
                     self.class_home[node.label].append(parsed.prefix)
                 if node.kind in ("function", "class"):
-                    self.top_level[parsed.prefix].add(node.label)
+                    self.in_file[parsed.prefix][node.label].append(node.id)
             for method_id, owner in parsed.owner_of.items():
                 self.methods[f"{parsed.prefix}::{owner}"].add(method_id)
 
@@ -223,8 +227,14 @@ def resolve(files: list[ParsedFile]) -> tuple[list[Edge], Counter]:
                 continue
 
             # ---- bare foo() ------------------------------------------
-            if site.name in symbols.top_level.get(parsed.prefix, set()):
-                emit(site, mint(parsed.prefix, site.name), "same file")
+            local = symbols.in_file.get(parsed.prefix, {}).get(site.name, [])
+            if len(local) == 1:
+                emit(site, local[0], "same file")
+                continue
+            if len(local) > 1:
+                # Two functions of that name in one file, in different scopes.
+                # Choosing would be a guess; the map says so instead.
+                refuse(site, f"name defined in {len(local)} scopes of this file, cannot choose")
                 continue
             prefix = _imported_prefix(site.name, parsed, symbols)
             if prefix:

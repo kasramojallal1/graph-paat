@@ -1,12 +1,13 @@
 {
+ "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 1957,
+  "calls": 1960,
   "contains": 1069,
   "imports": 645,
   "rationale_for": 676
  },
- "edges_total": 4347,
- "edges_unresolved": 1078,
+ "edges_total": 4350,
+ "edges_unresolved": 1087,
  "files_failed": 0,
  "files_parsed": 78,
  "id_collisions": 10,
@@ -23,8 +24,10 @@
   "called on self, but no such method on the class": 32,
   "imports a module outside this corpus": 255,
   "name defined in 2 places, cannot choose": 30,
+  "name defined in 2 scopes of this file, cannot choose": 7,
   "name defined in 21 places, cannot choose": 3,
   "name defined in 3 places, cannot choose": 110,
+  "name defined in 3 scopes of this file, cannot choose": 2,
   "name defined in 4 places, cannot choose": 11,
   "name defined in 5 places, cannot choose": 2,
   "name defined in 6 places, cannot choose": 1,
@@ -40,7 +43,7 @@
   "imported": 306,
   "module in corpus": 390,
   "receiver-typed": 232,
-  "same file": 278,
+  "same file": 272,
   "self-attribute-typed": 19,
   "self-method": 159,
   "unique in corpus": 140
