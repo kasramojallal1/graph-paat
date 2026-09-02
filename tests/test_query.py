@@ -220,3 +220,26 @@ class TestTermAgreement:
         assert alone[0] == "web_tags_filter"          # better connected wins alone
         together, _ = match(graph, ["QuerySet", "filter"])
         assert "orm_query_filter" in together[:2]     # the neighbour wins together
+
+
+class TestGroupLabelHonesty:
+    def test_group_label_hidden_when_the_node_lives_elsewhere(self, corpus, tmp_path):
+        # A group is named after where most of it lives. For a member living
+        # somewhere else that name is simply false.
+        graph = graph_of(corpus(SAMPLE), tmp_path / "out")
+        graph["overview"] = {"groups": [
+            {"group": 0, "name": "tests \u00b7 TestCase", "size": 5,
+             "named_folder": "tests"}]}
+        for n in graph["nodes"]:
+            n["group"] = 0
+        assert "part of: tests" not in render(graph, match(graph, ["Widget"])[0], budget=2000)
+
+    def test_group_label_shown_when_the_node_lives_there(self, corpus, tmp_path):
+        graph = graph_of(corpus(SAMPLE), tmp_path / "out")
+        folder = graph["nodes"][0]["file"].rsplit("/", 1)[0] if "/" in graph["nodes"][0]["file"] else "."
+        graph["overview"] = {"groups": [
+            {"group": 0, "name": "core \u00b7 Widget", "size": 5,
+             "named_folder": folder}]}
+        for n in graph["nodes"]:
+            n["group"] = 0
+        assert "part of: core" in render(graph, match(graph, ["Widget"])[0], budget=2000)

@@ -166,6 +166,10 @@ def _summarise(number: int, members: set, by_id: dict, degree: dict) -> dict:
     return {
         "group": number,
         "name": name,
+        # The directory the NAME claims, or "" when the name makes no such
+        # claim. A reader in a different directory must not be told they are
+        # "part of" this one.
+        "named_folder": folder if folder not in (".", "") else "",
         "size": len(real),
         "hub": hub["label"] if hub else None,
         "folders": [f for f, _ in folders.most_common(3)],

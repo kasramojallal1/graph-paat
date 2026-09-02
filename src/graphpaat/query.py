@@ -239,6 +239,12 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
     # `.get` so a graph from an older build still renders rather than failing.
     group_names = {g["group"]: g["name"] for g in all_groups
                    if not (g.get("size", 0) > 200 and g.get("size", 0) / total >= 0.15)}
+    # A group is named after the directory most of it lives in. For a member
+    # living somewhere else that name is false: Django's `Settings`, in conf/,
+    # was labelled "part of: test - SimpleTestCase". Checking membership of the
+    # group's top three folders was not enough -- conf was one of them, while
+    # the NAME claimed test. Compare against the directory the name claims.
+    named_folder = {g["group"]: g.get("named_folder", "") for g in all_groups}
     degree = _degrees(graph)
     found, travelled, hubs = neighbourhood(graph, seeds, depth)
 
@@ -257,6 +263,10 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
         if node is None:
             continue
         where = group_names.get(node.get("group"))
+        if where:
+            claimed = named_folder.get(node.get("group"), "")
+            if claimed and str(PurePosixPath(node["file"]).parent) != claimed:
+                where = None
         head = f"\n{node['label']}    {node['file']}:L{node['line']}    [{node['kind']}]"
         if where:
             head += f"    part of: {where}"
