@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "graph-paat"
+version = "0.1.0"
+description = "Give an AI agent a small map of a codebase too large to read."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Kasra Mojallal" }]
+keywords = ["code-graph", "static-analysis", "ai-agents", "codebase-navigation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+# No runtime dependencies. The code lane uses Python's own `ast` module, which
+# is why a build costs nothing and gives the same answer every run.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/kasramojallal1/graph-paat"
+
+[project.scripts]
+graph-paat = "graphpaat.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/graphpaat"]
