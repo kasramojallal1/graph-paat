@@ -105,6 +105,16 @@ class TestGodNodes:
         assert ranked.get("go", 0) <= 1
 
 
+class TestOrdering:
+    def test_groups_are_listed_in_the_order_of_the_size_shown(self, corpus):
+        # Sorting by raw membership while reporting a different count printed a
+        # group of 370 above one of 394.
+        nodes, edges = graph(corpus(TWO_CLUSTERS))
+        _, summary = communities(nodes, edges)
+        sizes = [g["size"] for g in summary["groups"]]
+        assert sizes == sorted(sizes, reverse=True)
+
+
 class TestGroupNaming:
     def test_an_exception_never_names_a_group(self, corpus):
         # An exception is connected to everything that raises it, so it wins on

@@ -109,6 +109,11 @@ def communities(nodes: list[dict], edges: list[dict],
         for nid in members:
             membership[nid] = number
         summaries.append(_summarise(number, members, by_id, degree))
+
+    # Sort by the size actually shown. Ordering by raw membership put a group
+    # of 370 above one of 394, because docstring nodes count toward membership
+    # and are excluded from the reported size.
+    summaries.sort(key=lambda s: (-s["size"], s["name"]))
     return membership, {"groups": summaries, "ungrouped": ungrouped}
 
 
