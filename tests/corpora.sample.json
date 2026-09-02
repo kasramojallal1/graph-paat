@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to corpora.json and set paths for your machine. Each corpus stresses different Python: requests is small enough to verify by hand, pydantic is metaclass-heavy, numpy has C extensions and dynamic imports, torch is a scale test.",
+  "requests": "/path/to/site-packages/requests",
+  "rich": "/path/to/site-packages/rich",
+  "pydantic": "/path/to/site-packages/pydantic",
+  "django": "/path/to/site-packages/django",
+  "numpy": "/path/to/site-packages/numpy",
+  "torch": "/path/to/site-packages/torch"
+}

@@ -10,3 +10,4 @@ dist/
 # graph output
 graph-paat-out/
 work*/
+tests/corpora.json

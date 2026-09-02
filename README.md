@@ -91,6 +91,32 @@ resolver refuses a call. Several exist because the bug they describe shipped onc
 with a real symbol named `_doc`, edges collected twice because they are reachable from both
 ends, and output written into the repository being analysed.
 
+### Against real repositories
+
+Unit tests use code small enough to know the answer by hand. That is not enough: some defects
+only appear at scale. So the tool is also run over six large installed packages, and every
+number it produces is recorded and compared on the next run.
+
+```bash
+cp tests/corpora.sample.json tests/corpora.json   # set paths for your machine
+python -m tests.corpus_runner                     # compare against baselines
+python -m tests.corpus_runner --record            # accept current numbers
+```
+
+| corpus | what it stresses |
+|---|---|
+| `requests` | small enough to verify entirely by hand |
+| `rich` | modern typed classes, properties |
+| `pydantic` | metaclasses and generated code |
+| `django` | classic OO, decorators, platform branches |
+| `numpy` | C extensions, dynamic imports |
+| `torch` | scale — 890,000 lines |
+
+**A metric that moves without an explanation is a bug until proven otherwise.** Reintroducing
+a naming bug that had already been fixed moves `id_collisions` on Django from 54 to 151, and
+the runner names the metric and the delta. The same bug is invisible on `requests`, which is
+why one corpus is not enough.
+
 ## Status
 
 Early. It reads **Python only**. Verified by hand against Django and several large packages.
