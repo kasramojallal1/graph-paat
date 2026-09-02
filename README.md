@@ -78,10 +78,22 @@ unresolved edge counts — so a gap is still visible when someone reads the file
 
 A docstring is printed as `[claim]`, not as fact. Comments go stale; parsers do not.
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+78 unit tests covering every identity rule, every resolution rule, and every reason the
+resolver refuses a call. Several exist because the bug they describe shipped once: a builtin
+`set()` resolved to a same-named function in a vendored package, a docstring id that clashed
+with a real symbol named `_doc`, edges collected twice because they are reachable from both
+ends, and output written into the repository being analysed.
+
 ## Status
 
-Early. It reads **Python only**, and it has no test suite yet — the roadmap puts that first.
-It has been verified by hand against `graphify`, `django`, and `requests`.
+Early. It reads **Python only**. Verified by hand against Django and several large packages.
 
 ## Licence
 
