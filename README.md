@@ -69,7 +69,13 @@ login()  calls  ?connect     UNRESOLVED (receiver type unknown, auth.py:44)
 ```
 
 This is deliberate. A missing edge and a nonexistent relationship look identical in a graph
-that only records successes, so the map has to say which one it is. The same applies to
+that only records successes, so the map has to say which one it is.
+
+One exception, and it is a judgement: no gap is drawn for the names of built-in container
+methods — `get`, `items`, `copy`, `update`. `config.get("timeout")` is a dictionary access,
+not a link worth chasing, and marking every one of them crowded out the gaps that mean
+something. They are still counted in the coverage report. A call that genuinely resolves to a
+method named `get` is unaffected. The same applies to
 identity: when two different symbols would take the same name, `graph-paat` reports it rather
 than silently keeping one.
 

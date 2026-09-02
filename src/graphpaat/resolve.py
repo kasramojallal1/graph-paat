@@ -34,6 +34,24 @@ from collections import Counter, defaultdict
 # and still wins.
 BUILTIN_NAMES = frozenset(dir(builtins))
 
+# Methods of the built-in container and string types. A call named `get`,
+# `items` or `copy` on a receiver we could not type is overwhelmingly
+# `dict.get` -- not a corpus symbol that happens to share the name.
+#
+# These names are still COUNTED as refusals, so the coverage report stays
+# honest; they are simply not drawn as gap markers in the graph. Measured
+# 2026-09-02: they were 67% of the gap markers on `requests`, 30% on Django.
+# A gap marker that appears on every ordinary dictionary access teaches an
+# agent nothing and crowds out the ones that mean something.
+#
+# The cost, stated: a class that genuinely defines `get` and is genuinely
+# called loses its gap marker. Resolved calls to such a method are unaffected
+# -- only the unproven ones stop being drawn.
+CONTAINER_METHODS = frozenset(
+    m for tp in (dict, list, set, frozenset, tuple, str, bytes)
+    for m in dir(tp) if not m.startswith("__")
+)
+
 from .ids import mint, normalise_path_part
 from .parse import Edge, ParsedFile
 
@@ -181,6 +199,8 @@ def resolve(files: list[ParsedFile]) -> tuple[list[Edge], Counter]:
 
     def refuse(site, reason: str) -> None:
         reasons[reason] += 1
+        if site.name in CONTAINER_METHODS:
+            return
         # Only draw the gap when a symbol of this name exists somewhere: then
         # we know a plausible target and failed to prove the link, which is
         # worth an agent's attention. `data.get()` is not.

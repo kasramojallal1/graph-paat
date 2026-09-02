@@ -148,6 +148,37 @@ class TestUnresolvedEdges:
         assert reasons["receiver type unknown"] == 1
 
 
+class TestContainerMethodNoise:
+    """`config.get("x")` is a dictionary access, not a gap worth marking."""
+
+    def test_no_gap_marker_for_a_builtin_container_method_name(self, corpus):
+        root = corpus({
+            "lib.py": "class Bag:\n    def get(self):\n        pass\n",
+            "app.py": "def go(config):\n    config.get('k')\n"})
+        got, reasons = edges_of(root, resolved=False)
+        assert got == []
+        # Still counted, so the coverage report stays honest.
+        assert reasons["receiver type unknown"] == 1
+
+    def test_a_resolved_call_to_a_real_get_is_unaffected(self, corpus):
+        # The filter drops unproven markers only. A call we can actually trace
+        # to a method named `get` is still an edge.
+        root = corpus({
+            "lib.py": "class Bag:\n    def get(self):\n        pass\n",
+            "app.py": ("from lib import Bag\n"
+                       "def go():\n"
+                       "    b = Bag()\n"
+                       "    b.get()\n")})
+        assert ("app_go", "lib_bag_get") in links(root)
+
+    def test_a_non_container_name_still_gets_its_marker(self, corpus):
+        root = corpus({
+            "lib.py": "class Other:\n    def connect(self):\n        pass\n",
+            "app.py": "def go(thing):\n    thing.connect()\n"})
+        got, _ = edges_of(root, resolved=False)
+        assert ("app_go", "?connect", "receiver type unknown") in got
+
+
 class TestImports:
     def test_module_inside_the_corpus_resolves_to_its_file(self, corpus):
         root = corpus({"lib.py": "x = 1\n", "app.py": "from lib import x\n"})

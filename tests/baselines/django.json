@@ -1,13 +1,13 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 21666,
+  "calls": 17310,
   "contains": 10959,
   "imports": 4037,
   "rationale_for": 3871
  },
- "edges_total": 40533,
- "edges_unresolved": 17051,
+ "edges_total": 36177,
+ "edges_unresolved": 12695,
  "files_failed": 0,
  "files_parsed": 879,
  "id_collisions": 54,
