@@ -82,7 +82,16 @@ def read(root: Path, out: Path | None = None) -> dict:
     if not path.exists():
         raise FileNotFoundError(
             f"no graph at {path} - run `graph-paat build {root}` first")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        # "Expecting value: line 1 column 1" says nothing a reader can act on.
+        # A half-written or hand-edited graph is recoverable by rebuilding, and
+        # that is what the message has to say.
+        raise ValueError(
+            f"the graph at {path} is not valid JSON ({exc.msg} at line "
+            f"{exc.lineno}) - it may be truncated or edited; rebuild it with "
+            f"`graph-paat build <path>`") from exc
     if data.get("schema") != SCHEMA:
         raise ValueError(
             f"graph at {path} uses schema {data.get('schema')}, this build expects "

@@ -85,10 +85,11 @@ class TestFailureModes:
         with pytest.raises(ValueError, match="rebuild"):
             store.read(root, out=out)
 
-    def test_a_truncated_file_raises_rather_than_returning_half_a_graph(self, corpus, tmp_path):
+    def test_a_truncated_file_says_what_to_do_about_it(self, corpus, tmp_path):
+        # "Expecting value: line 1 column 1" is not actionable.
         root = corpus({"m.py": "def f():\n    pass\n"})
         out = tmp_path / "out"
         path, _, _ = build(root, out)
         path.write_text(path.read_text()[: len(path.read_text()) // 2])
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises(ValueError, match="rebuild it"):
             store.read(root, out=out)

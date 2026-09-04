@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import store
 from .ids import Collisions
+from . import instructions
 from .parse import parse_corpus_files
 from .cluster import communities, god_nodes
 from .resolve import resolve
@@ -140,9 +141,30 @@ def overview(out: Path | None, top: int) -> int:
     return 0
 
 
+def install(root: Path, hosts: list[str], all_hosts: bool, remove: bool) -> int:
+    """Put the instructions where an assistant will read them."""
+    if remove:
+        done = instructions.uninstall(root)
+        for path, what in done:
+            print(f"  {what:24s} {path}")
+        if not done:
+            print("nothing installed here")
+        return 0
+    done = instructions.install(root, hosts or None,
+                                existing_only=not (hosts or all_hosts))
+    for path, what in done:
+        print(f"  {what:24s} {path}")
+    if all(w.startswith("skipped") for _, w in done):
+        print("\nNo instructions file found. Name a host to create one, e.g.:")
+        print("  graph-paat install --host claude")
+        print(f"  hosts: {', '.join(instructions.TARGETS)}")
+    return 0
+
+
 USAGE = """usage:
   graph-paat build <path> [--out <dir>]
   graph-paat overview [--top N] [--out <dir>]
+  graph-paat install [--host claude|agents|gemini|cursor|copilot] [--all] [--remove]
   graph-paat vocab [--contains <text>] [--limit N] [--out <dir>]
   graph-paat query <term> [<term>...] [--budget N] [--depth N] [--seeds N]
                                      [--per-node N] [--out <dir>]"""
@@ -157,8 +179,23 @@ def _take(rest: list[str], flag: str, cast=str, default=None):
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = argv if argv is not None else sys.argv[1:]
-    if not argv or argv[0] not in ("build", "vocab", "query", "overview"):
+    """Entry point. Every expected failure leaves as a message, not a traceback.
+
+    Following the published instructions literally, an agent that queries
+    before building got a Python stack trace. The store already raises a
+    message saying exactly what to run; nothing was catching it.
+    """
+    try:
+        return _run(argv if argv is not None else sys.argv[1:])
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"graph-paat: {exc}", file=sys.stderr)
+        return 1
+    except BrokenPipeError:
+        return 0          # piping into `head` is normal usage, not an error
+
+
+def _run(argv: list[str]) -> int:
+    if not argv or argv[0] not in ("build", "vocab", "query", "overview", "install"):
         print(USAGE, file=sys.stderr)
         return 2
     command, rest = argv[0], argv[1:]
@@ -166,6 +203,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if command == "build":
         return build(Path(rest[0] if rest else "."), out=out)
+    if command == "install":
+        hosts: list[str] = []
+        while "--host" in rest:
+            host, rest = _take(rest, "--host")
+            hosts.append(host)
+        all_hosts = "--all" in rest
+        remove = "--remove" in rest
+        rest = [a for a in rest if a not in ("--all", "--remove")]
+        return install(Path(rest[0] if rest else "."), hosts, all_hosts, remove)
     if command == "overview":
         top, rest = _take(rest, "--top", int, 10)
         return overview(out, top)

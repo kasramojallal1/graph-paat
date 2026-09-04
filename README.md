@@ -71,6 +71,19 @@ directory most of its members live in and its most connected symbol, because a g
 `build` runs once. `vocab` and `query` read what it wrote. A full build of Django — 879
 files, 155,000 lines — takes about a second.
 
+### Let an agent find it
+
+```bash
+graph-paat install                 # add instructions to CLAUDE.md, AGENTS.md, … if present
+graph-paat install --host cursor   # or create one for a specific assistant
+graph-paat install --remove        # take them out again
+```
+
+Writes a short marked block into whichever instructions file your assistant already reads,
+so it reaches for the tool on its own instead of waiting to be told. Only files that already
+exist are touched unless you name a host, the block sits between markers so a reinstall
+replaces exactly what the last one wrote, and `--remove` restores the file as it was.
+
 ### For an agent
 
 The intended loop is two calls. The agent has a language model; `graph-paat` does not.
