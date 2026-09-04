@@ -37,13 +37,13 @@ pip install -e .
 ```
 
 Reading Python needs nothing installed — the standard library's own parser does it.
-`networkx` is used for grouping. Go needs a grammar:
+`networkx` is used for grouping. Go and TypeScript need grammars:
 
 ```bash
-pip install -e ".[go]"
+pip install -e ".[all]"      # or ".[go]" / ".[typescript]"
 ```
 
-Without it, `.go` files are skipped and the build says so rather than quietly leaving them
+Without one, those files are skipped and the build says so rather than quietly leaving them
 out.
 
 ## Use
@@ -172,16 +172,20 @@ why one corpus is not enough.
 
 ## Status
 
-Early. It reads **Python and Go**. Verified by hand against Django, pydantic, grpc and several
-other large packages, and regression-checked against nine recorded corpora.
+Early. It reads **Python, Go and TypeScript**. Verified by hand against Django, pydantic,
+grpc, redux and several other large packages, and regression-checked against twelve recorded
+corpora.
 
-Go maps onto exactly the same shapes: a struct or interface is a class, an embedded type is
-inheritance, a `//` doc comment is a claim. Nothing downstream knows a second language exists
-— which was the test of whether the model was language-neutral at all.
+Every language produces the same shapes. A Go struct, a TypeScript interface and a Python
+class are all `class` nodes; Go embedding, TypeScript `extends` and `implements`, and Python
+subclassing are all `inherits`; a docstring, a `//` doc comment and a `/** */` block are all
+claims. Nothing downstream — grouping, ranking, query — knows more than one language exists,
+which was the real test of whether the model was language-neutral.
 
-One difference is in Go's favour. A method receiver is declared, so `func (s *Server) Start()`
-states what `s` is and every `s.foo()` inside resolves exactly. The same fact in Python has to
-be inferred from an assignment, and usually cannot be.
+How well calls resolve depends on how much the language declares. Go states a method's
+receiver outright, so every call on it resolves exactly. TypeScript usually annotates
+parameters, which is nearly as good. Python has to infer the same fact from an assignment,
+and often cannot.
 
 ## Licence
 

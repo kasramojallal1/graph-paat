@@ -19,7 +19,7 @@ _UNAVAILABLE: dict[str, str] = {}
 
 # tree-sitter languages are optional: reading Python needs nothing installed,
 # and a user who only has Python code should not have to carry grammars.
-for _name in ("go",):
+for _name in ("go", "typescript"):
     try:
         _mod = __import__(f"graphpaat.languages.{_name}", fromlist=[_name])
         if _mod.available():

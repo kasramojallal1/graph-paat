@@ -1,0 +1,41 @@
+{
+ "dangling_edges": 0,
+ "edges_by_relation": {
+  "calls": 17,
+  "contains": 44,
+  "imports": 34,
+  "inherits": 2,
+  "rationale_for": 22
+ },
+ "edges_total": 119,
+ "edges_unresolved": 5,
+ "files_failed": 0,
+ "files_parsed": 17,
+ "id_collisions": 0,
+ "ids_unique": 83,
+ "nodes_by_kind": {
+  "class": 25,
+  "file": 17,
+  "function": 19,
+  "rationale": 22
+ },
+ "nodes_total": 83,
+ "refusals_by_reason": {
+  "imports a module outside this corpus": 5,
+  "not defined in this corpus (builtin or third party)": 47,
+  "python builtin": 3,
+  "receiver type unknown": 25,
+  "receiver typed, but no such method in the corpus": 3
+ },
+ "resolved_by_rule": {
+  "base class in corpus": 2,
+  "imported": 7,
+  "module in corpus": 29,
+  "same file": 8,
+  "unique in corpus": 2
+ },
+ "shape": {
+  "groups": 6,
+  "ungrouped": 0
+ }
+}

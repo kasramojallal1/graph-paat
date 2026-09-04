@@ -35,6 +35,8 @@ packages = ["src/graphpaat"]
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 go = ["tree-sitter>=0.21", "tree-sitter-go>=0.21"]
+typescript = ["tree-sitter>=0.21", "tree-sitter-typescript>=0.21"]
+all = ["tree-sitter>=0.21", "tree-sitter-go>=0.21", "tree-sitter-typescript>=0.21"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

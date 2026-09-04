@@ -92,6 +92,11 @@ def collect(root: Path) -> list[Path]:
     for path in sorted(root.rglob("*")):
         if path.suffix.lower() not in EXTENSIONS or not path.is_file():
             continue
+        # A declaration file restates the names of the module beside it, and
+        # file_prefix drops the extension -- so foo.ts and foo.d.ts would mint
+        # identical ids and collide by construction. Same reason .pyi is out.
+        if path.name.endswith((".d.ts", ".d.mts", ".d.cts")):
+            continue
         parts = path.relative_to(root).parts[:-1]
         if any(d in SKIP_DIRS or d.startswith(".") for d in parts):
             continue
