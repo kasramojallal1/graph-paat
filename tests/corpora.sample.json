@@ -1,9 +1,11 @@
 {
-  "_comment": "Copy to corpora.json and set paths for your machine. Each corpus stresses different Python: requests is small enough to verify by hand, pydantic is metaclass-heavy, numpy has C extensions and dynamic imports, torch is a scale test.",
-  "requests": "/path/to/site-packages/requests",
-  "rich": "/path/to/site-packages/rich",
-  "pydantic": "/path/to/site-packages/pydantic",
-  "django": "/path/to/site-packages/django",
-  "numpy": "/path/to/site-packages/numpy",
-  "torch": "/path/to/site-packages/torch"
+ "_comment": "Copy to corpora.json and set paths for your machine. Each corpus stresses different Python: requests is small enough to verify by hand, pydantic is metaclass-heavy, numpy has C extensions and dynamic imports, torch is a scale test. Go corpora exercise the second language: uuid is small enough to verify by hand, grpc is the scale test.",
+ "requests": "/path/to/site-packages/requests",
+ "rich": "/path/to/site-packages/rich",
+ "pydantic": "/path/to/site-packages/pydantic",
+ "django": "/path/to/site-packages/django",
+ "numpy": "/path/to/site-packages/numpy",
+ "torch": "/path/to/site-packages/torch",
+ "go-uuid": "/path/to/go/pkg/mod/github.com/google/uuid@v1.6.0",
+ "go-grpc": "/path/to/go/pkg/mod/google.golang.org/grpc@v1.78.0"
 }

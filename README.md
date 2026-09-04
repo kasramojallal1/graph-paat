@@ -36,8 +36,15 @@ connected their target is, so the answer is `order_by` and `bulk_create`.
 pip install -e .
 ```
 
-The parser is Python's own `ast` module, so reading a repository needs nothing installed.
-`networkx` is used for grouping only; without it the graph still builds.
+Reading Python needs nothing installed — the standard library's own parser does it.
+`networkx` is used for grouping. Go needs a grammar:
+
+```bash
+pip install -e ".[go]"
+```
+
+Without it, `.go` files are skipped and the build says so rather than quietly leaving them
+out.
 
 ## Use
 
@@ -165,7 +172,16 @@ why one corpus is not enough.
 
 ## Status
 
-Early. It reads **Python only**. Verified by hand against Django and several large packages.
+Early. It reads **Python and Go**. Verified by hand against Django, pydantic, grpc and several
+other large packages, and regression-checked against nine recorded corpora.
+
+Go maps onto exactly the same shapes: a struct or interface is a class, an embedded type is
+inheritance, a `//` doc comment is a claim. Nothing downstream knows a second language exists
+— which was the test of whether the model was language-neutral at all.
+
+One difference is in Go's favour. A method receiver is declared, so `func (s *Server) Start()`
+states what `s` is and every `s.foo()` inside resolves exactly. The same fact in Python has to
+be inferred from an assignment, and usually cannot be.
 
 ## Licence
 

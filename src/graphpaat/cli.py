@@ -32,7 +32,17 @@ def build(root: Path, out: Path | None = None) -> int:
     kinds = Counter(n.kind for n in nodes)
     rels = Counter(e.relation for e in edges)
 
+    from . import languages
     print(f"corpus:    {root.resolve()}")
+    print(f"languages: {', '.join(languages.names())}")
+    # A file we skipped because a grammar is missing is invisible loss, which
+    # is the thing this tool exists to refuse. Say it.
+    absent = languages.missing()
+    if absent:
+        for name, why in absent.items():
+            skipped = len([p for p in root.rglob(f"*.{name}")])
+            print(f"  ! {name}: not read ({why})"
+                  + (f" - {skipped} file(s) skipped" if skipped else ""))
     print(f"nodes:     {len(nodes)}")
     for kind, count in kinds.most_common():
         print(f"  {kind:10s} {count}")

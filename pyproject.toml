@@ -18,6 +18,9 @@ classifiers = [
 # Parsing uses Python's own `ast` module, so reading a repository needs nothing
 # installed. networkx is here for grouping only, and a build without it still
 # produces the full graph -- it just cannot say what the main parts are.
+# Python needs nothing: the standard library's own parser reads it. networkx
+# is for grouping. Any other language needs a tree-sitter grammar, which is an
+# extra so a Python-only user does not carry them.
 dependencies = ["networkx>=3"]
 
 [project.urls]
@@ -31,6 +34,7 @@ packages = ["src/graphpaat"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+go = ["tree-sitter>=0.21", "tree-sitter-go>=0.21"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
