@@ -6,29 +6,16 @@ from collections import Counter
 from pathlib import Path
 
 from . import store
-from .ids import Collisions
 from . import instructions
-from .parse import parse_corpus_files
-from .cluster import communities, god_nodes
-from .resolve import resolve
+from .build import assemble
 from .query import match, ranked_names, render, vocabulary
 
 
 def build(root: Path, out: Path | None = None) -> int:
-    parsed_files, failed = parse_corpus_files(root)
-
-    nodes, edges = [], []
-    collisions = Collisions()
-    for parsed in parsed_files:
-        for node in parsed.nodes:
-            collisions.claim(node.id, f"{node.file}:L{node.line}")
-            nodes.append(node)
-        edges.extend(parsed.edges)
-
-    # Resolution runs over the whole corpus at once: a call in one file usually
-    # lands in another, so it cannot be done per file.
-    call_edges, refusals = resolve(parsed_files)
-    edges.extend(call_edges)
+    built = assemble(root)
+    nodes, edges = built.nodes, built.edges
+    call_edges, refusals = built.call_edges, built.refusals
+    collisions, failed = built.collisions, built.failed
     kinds = Counter(n.kind for n in nodes)
     rels = Counter(e.relation for e in edges)
 
@@ -78,27 +65,18 @@ def build(root: Path, out: Path | None = None) -> int:
         for f in failed[:10]:
             print(f"  {f}")
 
-    # Clustering needs the finished graph, so it runs last. A missing networkx
-    # degrades the build rather than failing it: the map still works without
-    # knowing the shape of the codebase.
-    from dataclasses import asdict
-    node_dicts = [asdict(n) for n in nodes]
-    edge_dicts = [asdict(e) for e in edges]
-    groups, gods = None, None
-    try:
-        membership, groups = communities(node_dicts, edge_dicts)
-        gods = god_nodes(node_dicts, edge_dicts)
-        for node in nodes:
-            node.group = membership.get(node.id)
-        print(f"\ngroups:    {len(groups['groups'])} "
-              f"({groups['ungrouped']} nodes in none)")
-        for g in groups["groups"][:5]:
+    # A missing networkx degrades the build rather than failing it: the map
+    # still works without knowing the shape of the codebase.
+    if built.grouping_error:
+        print(f"\nno grouping: {built.grouping_error}")
+    else:
+        print(f"\ngroups:    {len(built.groups['groups'])} "
+              f"({built.groups['ungrouped']} nodes in none)")
+        for g in built.groups["groups"][:5]:
             print(f"  {g['size']:6d}  {g['name']}")
-    except ImportError as exc:
-        print(f"\nno grouping: {exc}")
 
     path = store.write(root, nodes, edges, collisions, failed, out=out,
-                       groups=groups, gods=gods)
+                       groups=built.groups, gods=built.gods)
     print(f"\nwritten: {path}")
     return 0
 

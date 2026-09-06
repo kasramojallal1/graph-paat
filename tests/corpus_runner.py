@@ -22,10 +22,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from graphpaat.cluster import communities, god_nodes
-from graphpaat.ids import Collisions
-from graphpaat.parse import parse_corpus_files
-from graphpaat.resolve import resolve
+from graphpaat.build import assemble
 
 HERE = Path(__file__).parent
 BASELINES = HERE / "baselines"
@@ -35,17 +32,10 @@ CONFIG = HERE / "corpora.json"
 def measure(root: Path) -> dict:
     """Every number one build produces. Deliberately exhaustive: a metric that
     is not recorded is a regression that cannot be seen."""
-    files, failed = parse_corpus_files(root)
-
-    nodes, edges, collisions = [], [], Collisions()
-    for parsed in files:
-        for node in parsed.nodes:
-            collisions.claim(node.id, f"{node.file}:L{node.line}")
-            nodes.append(node)
-        edges.extend(parsed.edges)
-
-    call_edges, refusals = resolve(files)
-    edges.extend(call_edges)
+    built = assemble(root)
+    nodes, edges = built.nodes, built.edges
+    call_edges, refusals, failed = built.call_edges, built.refusals, built.failed
+    collisions = built.collisions
 
     resolved = [e for e in call_edges if e.resolved]
     # An invariant, not a statistic. A resolved edge must point at a node that
@@ -54,17 +44,14 @@ def measure(root: Path) -> dict:
     # requests, and no count already recorded here would have revealed it.
     node_ids = {n.id for n in nodes}
     dangling = [e for e in resolved if e.target not in node_ids]
-    from dataclasses import asdict
-    try:
-        _, groups = communities([asdict(n) for n in nodes], [asdict(e) for e in edges])
-        shape = {"groups": len(groups["groups"]), "ungrouped": groups["ungrouped"]}
-    except ImportError:
-        shape = {}
+    shape = ({} if built.grouping_error else
+             {"groups": len(built.groups["groups"]),
+              "ungrouped": built.groups["ungrouped"]})
 
     return {
         "dangling_edges": len(dangling),
         "shape": shape,
-        "files_parsed": len(files),
+        "files_parsed": built.files_parsed,
         "files_failed": len(failed),
         "nodes_total": len(nodes),
         "nodes_by_kind": dict(Counter(n.kind for n in nodes)),
