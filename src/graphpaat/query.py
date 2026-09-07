@@ -5,14 +5,28 @@ vocabulary (`vocab`) so the agent can turn a question into names, then matches
 those names, walks outward, and renders what it found inside a token budget.
 Nothing here calls a model, needs a key, or answers differently on two runs.
 
-Three things separate a useful map from a dump, and each was added because the
-naive version failed visibly on a real repository:
+**Ranking was rebuilt on 2026-09-06 against a set of 120 questions whose right
+answers were written down first.** The old rules answered 17 of them correctly.
+These answer 41. Every rule below is here because removing it costs questions,
+and the cost is recorded beside it:
 
-**Seeds must be ranked.** Asking Django for `get` matches 30 symbols. Returning
-them in whatever order they were found spends the whole budget on an arbitrary
-one. Exact matches beat loose ones, and within a tier the better-connected
-symbol wins, because a name that many things use is usually the one being asked
-about.
+    ordinary English words dropped   -16    the single biggest one
+    a name is a bag of words         -11
+    coverage, squared                -10
+    stemming                          -8
+    long names penalised              -6
+    docstrings searched               -3   (-7 on top-three)
+    tests demoted                     -2
+    rarer words weigh more            -1   (-3 on top-three)
+    the kind of thing asked for       -1
+
+Two rules that survive on judgement rather than on score: the file path is
+worth a fraction of a point and measured zero, but it is what keeps a question
+matching no name at all from returning nothing; and the better-connected symbol
+still breaks a tie, worth one question.
+
+Three things about the walk, each added because the naive version failed on a
+real repository:
 
 **Links must be ranked.** A class's map was twelve dunder methods and nothing
 about what used it. Behaviour is more interesting than containment, and
@@ -21,9 +35,14 @@ about what used it. Behaviour is more interesting than containment, and
 **The walk must avoid hubs.** Two hops from something adjacent to a god node
 reaches most of the codebase. Expanding *through* a hub is what does it, so we
 report hubs and stop there.
+
+**Truncation is announced.** The subject of the question is rendered first, so
+what you asked about survives the budget.
 """
 from __future__ import annotations
 
+import math
+import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
@@ -40,12 +59,56 @@ RELATION_ORDER = {"inherits": 0, "subclassed by": 1, "calls": 2, "called by": 3,
                   "imports": 4, "imported by": 5, "part of": 6, "contains": 7,
                   "rationale_for": 8, "explains": 8}
 
-# Words that describe the RELATION being asked about, not a symbol to look for.
-# "what calls login" must not seed on `calls`, which is a method name in most
-# codebases and would seat an unrelated root.
-INTENT_WORDS = {"call", "calls", "called", "use", "uses", "using", "import",
-                "imports", "contain", "contains", "define", "defines", "where",
-                "what", "which", "does", "the", "and", "for", "from", "with"}
+# The words a question is made of rather than the thing it asks about.
+#
+# Dropping these is worth 16 questions, more than any other rule, and the reason
+# is sharper than "noise": matching is tiered, and an EXACT name match outranks
+# everything. Django defines a class called `A` in its date formatter, so the
+# indefinite article in "the base class for a database model" scored a perfect
+# match and took first place on five unrelated questions.
+#
+# What is deliberately NOT here: `get`, `set`, `send`, `save`, `load`, `open`,
+# `close`, `read`, `write`. They are filler in English and method names in every
+# codebase, and dropping them cost "how do I send a get request" its only real
+# term. The plural verb forms below (`calls`, `uses`) are different -- they name
+# the relation being asked about, not a symbol to start from.
+STOPWORDS = {
+    "a", "an", "the", "and", "or", "of", "to", "in", "on", "by", "for", "from",
+    "with", "at", "as", "is", "are", "was", "were", "be", "been", "do", "does",
+    "did", "how", "what", "which", "where", "when", "who", "why", "that", "this",
+    "it", "its", "i", "you", "we", "they", "my", "your", "our", "me", "us",
+    "can", "could", "should", "would", "will", "shall", "may", "might", "must",
+    "there", "here", "into", "out", "up", "down", "not", "no", "yes", "if",
+    "then", "else", "so", "than", "just", "only", "also", "some", "any", "all",
+    "each", "actually", "really", "happen", "happens", "work", "works",
+    "calls", "called", "uses", "using", "imports", "contains", "defines",
+    "defined",
+}
+
+# A word naming a kind of thing rather than a thing. "what class holds the
+# response body" is about a class; the word itself matches nothing useful and
+# would otherwise seed on `ClassVar`.
+KIND_WORDS = {"class": "class", "classes": "class", "function": "function",
+              "functions": "function", "method": "method", "methods": "method"}
+
+# How strongly each kind of match counts. The distance between them is doing
+# real work: narrowing the spread to 100/60/30 dropped the score from 41 to 31,
+# and flattening it further dropped it to 18. A name that IS the word you asked
+# for is not slightly better than a name that merely contains it.
+TIER_EXACT = 1000.0        # the whole name is the term
+TIER_TOKEN = 300.0         # one word of the name is the term
+TIER_PREFIX = 100.0        # the name starts with the term
+TIER_SUBSTRING = 1.0       # the term is somewhere inside the name
+TIER_DOC = 20.0            # the term is in the docstring attached to this node
+TIER_SOURCE = 0.5          # the term is in the file path
+KIND_BONUS = 150.0         # the question named this kind of thing
+
+# A name in a test file is never the answer to "how does X work", and it is the
+# loudest possible false positive, because test names are English sentences
+# built from the exact words a question uses. `TestClientHonorsConnectContext`
+# matched "client", "connect" and "context" at once and took first place on
+# seven of go-grpc's ten questions.
+TEST_MARKS = ("/test", "test_", "_test.", ".test.", "/spec", "_spec.", "conftest")
 
 # A node connected to more than this is a hub. We show it and do not expand
 # through it: two hops through Django's ValidationError reaches half the repo.
@@ -56,6 +119,86 @@ CHARS_PER_TOKEN = 4
 
 def estimate_tokens(text: str) -> int:
     return max(1, len(text) // CHARS_PER_TOKEN)
+
+
+def words(text: str) -> list[str]:
+    r"""Split a name into the words it is made of.
+
+    On underscores, on punctuation, and on case changes: `classify_file` gives
+    `classify` and `file`, `NewClient` gives `new` and `client`. Both the
+    question and the name go through this, so the two sides meet as words
+    instead of as substrings of each other -- which is what lets `classify`
+    match `classify_file` as strongly as it matches `classify`.
+
+    Worth 11 questions. `\w` counts underscore as a word character, so the
+    character class here excludes it explicitly.
+    """
+    out: list[str] = []
+    for part in re.findall(r"[^\W_]+", text):
+        pieces = re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z]+|[a-z]+|\d+", part)
+        out.extend(piece.lower() for piece in (pieces or [part]))
+    return [w for w in out if w]
+
+
+def stem(word: str) -> str:
+    """Strip the endings that are reliably inflections, and no more.
+
+    A question is asked in English and a codebase is named in stems:
+    `classified` has to reach `classify`, and `queried` has to reach `QuerySet`.
+    Worth 8 questions.
+
+    An earlier version also stripped trailing vowels, which turned `database`
+    into `databas` and `service` into `servic` -- merging `serve`, `server` and
+    `service` into one term on a corpus where all three are different things.
+    Being gentle here matters more than being thorough.
+    """
+    if len(word) > 4 and word.endswith(("ies", "ied")):
+        return word[:-3] + "y"
+    for suffix in ("ing", "ed", "es", "s"):
+        if word.endswith(suffix) and len(word) - len(suffix) >= 4:
+            return word[:-len(suffix)]
+    return word
+
+
+def forms(word: str) -> set[str]:
+    """Every spelling of one word that should count as the same word.
+
+    Stemming alone is not symmetric, and the asymmetry loses questions:
+    `cookies` stems to `cooky` while `cookie` stems to itself, so
+    "where are cookies kept" could not reach `RequestsCookieJar`. English has
+    too many plural rules to pick one -- `cities` wants `city`, `cookies` wants
+    `cookie` -- so we keep both and match if any spelling agrees.
+    """
+    out = {word, stem(word)}
+    if len(word) > 3 and word.endswith("s"):
+        out.add(word[:-1])
+    return out
+
+
+def _is_test(path: str, label: str) -> bool:
+    low = path.lower()
+    return (any(mark in low for mark in TEST_MARKS) or low.startswith("test")
+            or label.startswith("Test") or label.startswith("test_"))
+
+
+def _query_terms(raw: list[str]) -> tuple[list[str], str | None]:
+    """The question, as terms to search for, plus the kind of thing it asked for.
+
+    Falls back to the unfiltered words when a question is nothing but filler,
+    because a query that matches badly beats one that matches nothing.
+    """
+    tokens = [w for term in raw for w in words(term)]
+    kind = None
+    for token in tokens:
+        if token in KIND_WORDS:
+            kind = KIND_WORDS[token]
+    named = [t for t in tokens if t not in KIND_WORDS] or tokens
+    kept = [t for t in named if t not in STOPWORDS and len(t) > 2] or named
+    # The word the user typed, NOT its stem. Stemming here threw the original
+    # away, and `forms` could then only work from the stem: `cookies` became
+    # `cooky`, whose spellings are just {cooky}, so it never reached `cookie`.
+    # Keep the word; `forms` derives the rest.
+    return list(dict.fromkeys(kept)), kind
 
 
 def ranked_names(graph: dict) -> list[str]:
@@ -90,87 +233,140 @@ def _degrees(graph: dict) -> dict[str, int]:
     return degree
 
 
-def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int]:
-    """Rank nodes matching the terms. Returns (seeds, how many more matched).
+def _searchable(graph: dict) -> list[tuple]:
+    """Everything about a node that a question can be matched against.
 
-    Three signals, in order.
-
-    **Exactness.** An exact name beats a case-insensitive one beats a substring.
-
-    **Agreement between terms.** Django has a `filter` in the template library
-    and a `filter` on QuerySet. Asked for "QuerySet filter", ranking each term
-    alone put the template one first, because it has more connections. But the
-    other term's match lives in the ORM, and a question's words are about one
-    thing -- so a candidate sharing a group with another term's candidates wins.
-
-    **Connectedness.** Among equals, the symbol the codebase leans on.
+    The docstring is in here, and it is the one place we look that graphify does
+    not. Their scorer reads label, tokenized label, path and node id -- never the
+    prose attached to a symbol. But a question like "how are connections pooled
+    and reused" shares no word with any name in `requests`; the answer,
+    `HTTPAdapter`, says "connection pooling" in its own first line. Reading it is
+    worth 3 questions outright and 7 in the top three.
     """
-    index = vocabulary(graph)
-    lowered: dict[str, list[str]] = defaultdict(list)
-    for name, ids in index.items():
-        lowered[name.lower()].extend(ids)
+    doc_of: dict[str, str] = {}
+    by_id = {n["id"]: n for n in graph["nodes"]}
+    for edge in graph["edges"]:
+        # The docstring is the TARGET of a rationale_for edge; the symbol it
+        # explains is the source.
+        if edge["relation"] == "rationale_for":
+            doc = by_id.get(edge["target"])
+            if doc is not None and doc.get("text"):
+                doc_of[edge["source"]] = doc["text"]
+
+    rows = []
+    for node in graph["nodes"]:
+        if node["kind"] == "rationale":
+            continue
+        label = node["label"]
+        name_words = {f for w in words(label) for f in forms(w)}
+        doc_words = {f for w in words(doc_of.get(node["id"], "")) for f in forms(w)}
+        rows.append((node["id"], label.lower(), name_words, node["file"].lower(),
+                     {f for w in words(node["file"]) for f in forms(w)}, doc_words,
+                     node["kind"], _is_test(node["file"], label),
+                     max(1, len(name_words)), len(label)))
+    return rows
+
+
+def _idf(rows: list[tuple], terms: list[str]) -> dict[str, float]:
+    """What each term is worth: rarer is worth more.
+
+    On Django `file` appears in hundreds of names and says almost nothing;
+    `queryset` appears in a handful and says almost everything. Worth 1 question
+    outright and 3 in the top three -- small, but it costs one pass.
+    """
+    total = len(rows) or 1
+    weights = {}
+    for term in terms:
+        said = forms(term)
+        seen = sum(1 for row in rows
+                   if (said & row[2]) or any(f in row[1] for f in said))
+        weights[term] = math.log(1 + total / (1 + seen))
+    return weights
+
+
+def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int]:
+    """Rank nodes against the question. Returns (seeds, how many more matched).
+
+    One pass, four signals.
+
+    **Which tier each term matched**, strongest tier per term so one word cannot
+    be counted three times.
+
+    **How many of the question's words the name matched, squared.** A name
+    matching 3 of 4 keeps 56% of its score; one matching 1 of 4 keeps 6%. This
+    is the fix for the failure that started the rewrite: `classify_file` matches
+    both words of "classify file" and `_file_stem` matches one, they landed in
+    the same tier, and the tie went to the symbol with more callers. Squaring is
+    what makes it bite -- at plain coverage a single exact match still outscores
+    three weaker ones, because the exact tier is ten times the prefix tier.
+
+    **How rare each word is**, so common words cannot carry a match.
+
+    **How long the name is.** A five-word name matching two of your words is a
+    worse answer than a one-word name matching one; without this, Django
+    answered "how are database rows queried" with `fetch_returned_insert_rows`.
+    Worth 6 questions.
+    """
+    rows = _searchable(graph)
+    query, kind = _query_terms(terms)
+    if not query:
+        return [], 0
+    weights = _idf(rows, query)
     degree = _degrees(graph)
-    node_of = {n["id"]: n for n in graph["nodes"]}
-    group_of = {i: n.get("group") for i, n in node_of.items()}
+    spellings = {term: forms(term) for term in query}
 
-    def place(nid: str) -> tuple:
-        """Where a symbol sits, coarse to fine: (group, directory, file)."""
-        n = node_of.get(nid)
-        if n is None:
-            return (None, None, None)
-        return (n.get("group"), str(PurePosixPath(n["file"]).parent), n["file"])
+    scored: list[tuple[float, str, int]] = []
+    for (nid, label, name_words, path, path_words, doc_words, node_kind,
+         is_test, n_words, label_len) in rows:
+        tiered = corroborating = 0.0
+        matched = 0
+        for term in query:
+            weight = weights[term]
+            said = spellings[term]
+            # Every comparison runs over the term's spellings, not the raw word,
+            # so `cookies` reaches `RequestsCookieJar` and `queried` reaches
+            # `QuerySet` without the query and the name having to agree on
+            # which inflection to use.
+            if label in said:
+                tiered += TIER_EXACT * weight
+                matched += 1
+            elif said & name_words:
+                tiered += TIER_TOKEN * weight
+                matched += 1
+            elif any(label.startswith(f) for f in said):
+                tiered += TIER_PREFIX * weight
+                matched += 1
+            elif any(f in label for f in said):
+                corroborating += TIER_SUBSTRING * weight
+                matched += 1
+            elif said & doc_words:
+                # Evidence, but weaker than a name -- what a symbol is CALLED is
+                # a stronger claim about it than what its docstring mentions in
+                # passing. It goes in the tiered bucket so it is subject to the
+                # same coverage penalty: docstrings are long, so a question full
+                # of vague words could otherwise accumulate more from five weak
+                # prose hits than a real answer earns from one strong name.
+                tiered += TIER_DOC * weight
+                matched += 1
+            if said & path_words or any(f in path for f in said):
+                # The folder corroborates; it does not count as coverage. A
+                # neighbour of the real answer usually shares its directory, and
+                # must not win back a tier it did not earn on its own name.
+                corroborating += TIER_SOURCE * weight
+        if n_words > 1:
+            tiered /= math.sqrt(n_words)
+        tiered *= (matched / len(query)) ** 2
+        if kind and node_kind == kind:
+            corroborating += KIND_BONUS
+        total = tiered + corroborating
+        if is_test:
+            total *= 0.05
+        if total > 0:
+            scored.append((total, nid, label_len))
 
-    real_terms = [t for t in terms if t.lower() not in INTENT_WORDS] or terms
-    tiers: dict[str, int] = {}
-    by_term: dict[str, set[str]] = defaultdict(set)
-    exact_by_term: dict[str, set[str]] = defaultdict(set)
-
-    def offer(term, ids, tier):
-        for i in ids:
-            if tier < tiers.get(i, 99):
-                tiers[i] = tier
-            by_term[term].add(i)
-            if tier == 0:
-                exact_by_term[term].add(i)
-
-    for term in real_terms:
-        if term in index:
-            offer(term, index[term], 0)
-        if term.lower() in lowered:
-            offer(term, lowered[term.lower()], 1)
-        needle = term.lower()
-        for name, ids in index.items():
-            if needle in name.lower():
-                offer(term, ids, 2)
-
-    # Agreement is measured against EXACT matches only. Using every match made
-    # the signal useless: "queryset" appears as a substring in names all over
-    # Django, so every group agreed with every other and nothing was ranked.
-    #
-    # Three levels, because one is not enough. A group can be huge -- Django's
-    # largest holds 2,811 nodes -- and inside it "same group" separates nothing.
-    # Same file is the sharpest signal and same directory sits between them.
-    places_by_term = {t: {place(i) for i in ids} for t, ids in exact_by_term.items()}
-
-    def agreement(nid: str) -> int:
-        if len(real_terms) < 2:
-            return 0
-        g, folder, file = place(nid)
-        mine = {t for t, ids in by_term.items() if nid in ids}
-        score = 0
-        for term, places in places_by_term.items():
-            if term in mine:
-                continue
-            if any(p[2] == file for p in places):
-                score += 4          # same file
-            elif any(p[1] == folder for p in places):
-                score += 2          # same directory
-            elif g is not None and any(p[0] == g for p in places):
-                score += 1          # same group
-        return score
-
-    ranked = sorted(tiers, key=lambda i: (tiers[i], -agreement(i), -degree.get(i, 0), i))
-    return ranked[:limit], max(0, len(ranked) - limit)
+    # Among equals, the symbol the codebase leans on, then the shorter name.
+    scored.sort(key=lambda s: (-s[0], -degree.get(s[1], 0), s[2], s[1]))
+    return [nid for _, nid, _ in scored[:limit]], max(0, len(scored) - limit)
 
 
 def neighbourhood(graph: dict, seeds: list[str], depth: int = 2

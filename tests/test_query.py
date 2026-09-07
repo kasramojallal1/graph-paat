@@ -2,7 +2,8 @@
 from graphpaat import store
 from graphpaat.ids import Collisions
 from graphpaat.parse import parse_corpus_files
-from graphpaat.query import estimate_tokens, match, neighbourhood, render, vocabulary
+from graphpaat.query import (_query_terms, estimate_tokens, forms, match,
+                             neighbourhood, render, stem, vocabulary, words)
 from graphpaat.resolve import resolve
 
 
@@ -243,3 +244,121 @@ class TestGroupLabelHonesty:
         for n in graph["nodes"]:
             n["group"] = 0
         assert "part of: core" in render(graph, match(graph, ["Widget"])[0], budget=2000)
+
+
+class TestWordsAndSpellings:
+    """A question is English; a codebase is named in stems. These meet them."""
+
+    def test_a_name_splits_on_underscores(self):
+        assert words("classify_file") == ["classify", "file"]
+
+    def test_a_name_splits_on_case_changes(self):
+        assert words("NewClient") == ["new", "client"]
+
+    def test_an_acronym_stays_whole(self):
+        assert words("HTTPAdapter") == ["http", "adapter"]
+
+    def test_a_past_participle_reaches_its_verb(self):
+        assert stem("classified") == "classify"
+
+    def test_queried_reaches_query(self):
+        # This one is why the rule exists: `QuerySet` must answer a question
+        # about how rows are queried.
+        assert stem("queried") == "query"
+
+    def test_a_gentle_stem_leaves_a_real_word_alone(self):
+        # An earlier version stripped trailing vowels and merged `serve`,
+        # `server` and `service` into one term.
+        assert stem("database") == "database"
+        assert stem("service") == "service"
+
+    def test_a_plural_carries_both_spellings(self):
+        # `cookies` stems to `cooky`, but the symbol is spelled `Cookie`.
+        # Keeping every spelling is what lets the two meet.
+        assert "cookie" in forms("cookies")
+        assert "cooky" in forms("cookies")
+
+
+class TestQueryTerms:
+
+    def test_ordinary_english_is_dropped(self):
+        terms, _ = _query_terms("what is the base class for a database model".split())
+        assert "a" not in terms and "is" not in terms and "the" not in terms
+
+    def test_a_code_verb_is_not_dropped(self):
+        # `get` and `send` are filler in English and method names everywhere.
+        terms, _ = _query_terms("how do I send a get request".split())
+        assert "send" in terms and "get" in terms
+
+    def test_a_question_of_pure_filler_still_searches_something(self):
+        terms, _ = _query_terms("how does it work".split())
+        assert terms
+
+    def test_the_kind_asked_for_is_recognised_and_removed(self):
+        terms, kind = _query_terms("what class holds the response body".split())
+        assert kind == "class" and "class" not in terms
+
+
+class TestRankingRules:
+    """Each rule below cost questions when it was removed. One test each."""
+
+    def test_an_article_cannot_win_on_an_exact_match(self, corpus, tmp_path):
+        # Django has a class called `A`. "a database model" must not seed on it.
+        graph = graph_of(corpus({"fmt.py": "class A:\n    pass\n",
+                                 "db.py": "class Model:\n    pass\n"}), tmp_path / "out")
+        seeds, _ = match(graph, "what is the base class for a model".split())
+        assert seeds[0] == "db_model"
+
+    def test_matching_more_of_the_question_beats_being_better_connected(self, corpus, tmp_path):
+        # The failure that started the rewrite: `classify_file` matches both
+        # words, `_file_stem` matches one and has far more callers.
+        graph = graph_of(corpus({
+            "detect.py": "def classify_file(p):\n    pass\n",
+            "base.py": ("def _file_stem(p):\n    pass\n"
+                        "def a():\n    _file_stem(1)\n"
+                        "def b():\n    _file_stem(2)\n"
+                        "def c():\n    _file_stem(3)\n")}), tmp_path / "out")
+        seeds, _ = match(graph, ["classify", "file"])
+        assert seeds[0] == "detect_classify_file"
+
+    def test_an_english_question_reaches_a_stemmed_name(self, corpus, tmp_path):
+        graph = graph_of(corpus({"detect.py": "def classify_file(p):\n    pass\n"}),
+                         tmp_path / "out")
+        seeds, _ = match(graph, "how are files classified".split())
+        assert seeds[0] == "detect_classify_file"
+
+    def test_a_short_name_beats_a_long_one_matching_the_same_words(self, corpus, tmp_path):
+        graph = graph_of(corpus({
+            "q.py": "class QuerySet:\n    pass\n",
+            "ops.py": "def fetch_returned_insert_rows_query(x):\n    pass\n"}),
+            tmp_path / "out")
+        seeds, _ = match(graph, ["query"])
+        assert seeds[0] == "q_queryset"
+
+    def test_a_test_file_is_not_the_answer(self, corpus, tmp_path):
+        # Test names are English sentences built from the words a question uses.
+        graph = graph_of(corpus({
+            "server.go_test.py": "def test_client_connects_to_server():\n    pass\n",
+            "conn.py": "def connect_client():\n    pass\n"}), tmp_path / "out")
+        seeds, _ = match(graph, ["client", "connect"])
+        assert seeds[0] == "conn_connect_client"
+
+    def test_a_docstring_answers_when_no_name_does(self, corpus, tmp_path):
+        # "how are connections pooled" shares no word with `HTTPAdapter`; its
+        # docstring is where "connection pooling" is written down.
+        graph = graph_of(corpus({"a.py": (
+            "class HTTPAdapter:\n"
+            "    '''Handles connection pooling and reuse.'''\n"
+            "    pass\n"
+            "class Session:\n    '''A session.'''\n    pass\n")}), tmp_path / "out")
+        seeds, _ = match(graph, ["connection", "pooling"])
+        assert seeds[0] == "a_httpadapter"
+
+    def test_a_rarer_word_carries_more_weight(self, corpus, tmp_path):
+        # `file` is everywhere and says little; `queryset` says everything.
+        graph = graph_of(corpus({
+            "a.py": "def file_one():\n    pass\ndef file_two():\n    pass\n"
+                    "def file_three():\n    pass\ndef queryset_file():\n    pass\n"}),
+            tmp_path / "out")
+        seeds, _ = match(graph, ["file", "queryset"])
+        assert seeds[0] == "a_queryset_file"
