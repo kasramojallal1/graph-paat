@@ -33,13 +33,18 @@ from graphpaat.query import match
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
 BASELINE = HERE / "baselines" / "questions.json"
+# The held-out set, written by agents who never saw this tool, and never tuned
+# against. `--heldout` swaps both files: a separate baseline so the two scores
+# can never be confused for one another.
+HELDOUT = HERE / "questions-heldout.json"
+HELDOUT_BASELINE = HERE / "baselines" / "questions-heldout.json"
 CONFIG = HERE / "corpora.json"
 
 TOP_N = 3           # "in the top three" -- an agent reads a handful, not one
 
 
-def load_questions() -> dict[str, list[dict]]:
-    return json.loads(QUESTIONS.read_text())["questions"]
+def load_questions(path: Path | None = None) -> dict[str, list[dict]]:
+    return json.loads((path or QUESTIONS).read_text())["questions"]
 
 
 def load_corpora() -> dict[str, Path]:
@@ -101,9 +106,12 @@ def summarise(ranks: dict) -> tuple[int, int, int]:
 def main(argv: list[str]) -> int:
     record = "--record" in argv
     show_misses = "--misses" in argv
+    heldout = "--heldout" in argv
     only = [a for a in argv if not a.startswith("--")]
 
-    questions = load_questions()
+    source, baseline = ((HELDOUT, HELDOUT_BASELINE) if heldout
+                        else (QUESTIONS, BASELINE))
+    questions = load_questions(source)
     corpora = load_corpora()
     if only:
         questions = {k: v for k, v in questions.items() if k in only}
@@ -153,13 +161,13 @@ def main(argv: list[str]) -> int:
 
     flat = {name: {q: r["rank"] for q, r in ranks.items()}
             for name, ranks in results.items()}
-    if record or not BASELINE.exists():
-        BASELINE.parent.mkdir(exist_ok=True)
-        BASELINE.write_text(json.dumps(flat, indent=1, sort_keys=True) + "\n")
-        print(f"\nrecorded {total} question(s) to {BASELINE.name}")
+    if record or not baseline.exists():
+        baseline.parent.mkdir(exist_ok=True)
+        baseline.write_text(json.dumps(flat, indent=1, sort_keys=True) + "\n")
+        print(f"\nrecorded {total} question(s) to {baseline.name}")
         return 0
 
-    return _compare(flat, json.loads(BASELINE.read_text()))
+    return _compare(flat, json.loads(baseline.read_text()))
 
 
 def _wanted(corpus_questions: list[dict], q: str) -> list[str]:

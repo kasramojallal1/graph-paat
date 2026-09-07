@@ -1,0 +1,50 @@
+{
+ "pandas": {
+  "given several different column types, what works out the single type they can all become": -1,
+  "how are strings converted into real timestamps": -1,
+  "how does pandas decide which library actually draws a chart": -1,
+  "how does pandas work out which rows belong to which group": -1,
+  "how is a frequency table of two columns computed": -1,
+  "what enforces the cap on how many values in a row may be filled": -1,
+  "what merges the separate chunks holding columns of the same type into one": -1,
+  "what turns a path or url into an open stream and deals with compression on the way": -1,
+  "when two tables are merged on a key, what figures out which rows on each side line up": -1,
+  "where does assigning a value into a selected part of a frame actually take effect": -1
+ },
+ "scipy": {
+  "how are observations merged step by step into a nested hierarchy of groups": -1,
+  "how do I fit a function with unknown parameters to measured data points": -1,
+  "how do I get the distance between every pair of points from two separate sets": -1,
+  "how do I interpolate scattered data in several dimensions": -1,
+  "how do I read a MATLAB data file": -1,
+  "how do I solve a linear system whose matrix is sparse": -1,
+  "how do I subtract a slow drift from a recorded signal": -1,
+  "how is a confidence interval built by resampling the observed data with replacement": -1,
+  "how is a matrix factored into an orthogonal part and an upper triangular part": -1,
+  "how is a system of ordinary differential equations advanced through time from a starting state": -1
+ },
+ "sympy": {
+  "how are repeated pieces of a large expression pulled out and named once": -1,
+  "how are the eigenvalues of a matrix computed": -1,
+  "how do I render an expression as latex markup": 0,
+  "how do I turn a formula into a fast numeric python callable": 0,
+  "how do you change a quantity into different units": -1,
+  "how does the library work out which method fits a differential equation": -1,
+  "how is a ratio of polynomials split into a sum of simpler fractions": -1,
+  "how is an expression rewritten using facts already known about its symbols": -1,
+  "what combines like terms when a sum is built": -1,
+  "which routine finds an antiderivative the way a student would on paper": -1
+ },
+ "transformers": {
+  "how are the least likely words discarded so the remaining ones add up to a set probability": -1,
+  "how are training batches prepared for masked language model pretraining": 0,
+  "how do a model's dense layers get swapped for low bit versions when loading a quantized checkpoint": -1,
+  "how do weights from a downloaded checkpoint end up in the right places inside the model": -1,
+  "how does a slow tokenizer find user added special strings inside raw text before splitting words": -1,
+  "how does a tokenizer turn a list of chat messages into the prompt string": -1,
+  "how is the mask that hides future positions built for a decoder": -1,
+  "where are the keys and values from earlier tokens kept so they are not recomputed at every step": -1,
+  "where is the loop over epochs and batches that fine tuning actually runs": -1,
+  "which model gets used when someone asks for a task without naming a checkpoint": -1
+ }
+}

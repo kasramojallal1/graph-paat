@@ -1,0 +1,309 @@
+{
+ "about": [
+  "THE HELD-OUT SET. Do not tune against it.",
+  "",
+  "The other question set was written by the same person who then changed the ranking",
+  "rules to score better on it. That is marking your own homework, and the number it",
+  "produces cannot answer the only question that matters: does this work on a codebase",
+  "and a phrasing nobody had in mind while writing the code?",
+  "",
+  "These forty were written on 2026-09-07 by four separate agents, one per codebase,",
+  "each with a clean context and each forbidden from looking at graph-paat at all --",
+  "not its source, not its existing questions, not its output. They worked only from",
+  "the library's own source, and every answer was verified to exist as a node.",
+  "",
+  "The rule that keeps this honest: score it, write the number down, and do not change",
+  "a ranking rule because of what it says. If a change is made for the other set, this",
+  "one is re-scored afterwards to see whether the gain was real or was overfitting."
+ ],
+ "questions": {
+  "transformers": [
+   {
+    "q": "how does a tokenizer turn a list of chat messages into the prompt string",
+    "answers": [
+     "tokenization_utils_base.py:apply_chat_template"
+    ],
+    "why": "tokenization_utils_base.py:L2914 - read the body: it takes a conversation of role/content dicts, reads the tokenizer's chat_template attribute and renders it, optionally tokenizing the result"
+   },
+   {
+    "q": "how does a slow tokenizer find user added special strings inside raw text before splitting words",
+    "answers": [
+     "tokenization_python.py:Trie"
+    ],
+    "why": "tokenization_python.py:L45 - the class docstring says it is built out of the added tokens and used to split on them in one pass; confirmed the tokenizer calls self.tokens_trie.split(text) at tokenization_python.py:L644"
+   },
+   {
+    "q": "how are the least likely words discarded so the remaining ones add up to a set probability",
+    "answers": [
+     "generation/logits_process.py:TopPLogitsWarper"
+    ],
+    "why": "generation/logits_process.py:L468 - its __call__ sorts the logits, takes a cumulative softmax and masks out everything below the 1 - top_p cut-off, which is exactly nucleus filtering"
+   },
+   {
+    "q": "where are the keys and values from earlier tokens kept so they are not recomputed at every step",
+    "answers": [
+     "cache_utils.py:DynamicCache"
+    ],
+    "why": "cache_utils.py:L906 - docstring: a cache that grows as more tokens are generated and is the default for generative models; it holds one key/value layer per decoder layer and is the object passed as past_key_values"
+   },
+   {
+    "q": "how is the mask that hides future positions built for a decoder",
+    "answers": [
+     "masking_utils.py:create_causal_mask"
+    ],
+    "why": "masking_utils.py:L831 - builds the causal mask for the configured attention implementation from the attention mask, cache position and cache; grep shows 133 modeling_*.py files call it"
+   },
+   {
+    "q": "how do a model's dense layers get swapped for low bit versions when loading a quantized checkpoint",
+    "answers": [
+     "integrations/bitsandbytes.py:replace_with_bnb_linear"
+    ],
+    "why": "integrations/bitsandbytes.py:L157 - walks named_modules and substitutes each nn.Linear/Conv1D with bnb.nn.Linear8bitLt or bnb.nn.Linear4bit according to the quantization config"
+   },
+   {
+    "q": "where is the loop over epochs and batches that fine tuning actually runs",
+    "answers": [
+     "trainer.py:_inner_training_loop"
+    ],
+    "why": "trainer.py:L2225 - builds the train dataloader, handles resume state, then runs `for epoch in range(epochs_trained, num_train_epochs)` with the gradient accumulation chunking inside; Trainer.train only sets up and delegates here"
+   },
+   {
+    "q": "how are training batches prepared for masked language model pretraining",
+    "answers": [
+     "data/data_collator.py:DataCollatorForLanguageModeling"
+    ],
+    "why": "data/data_collator.py:L619 - pads a batch dynamically and, via its torch_mask_tokens at L796, selects tokens with mlm_probability then applies the 80/10/10 mask, random, keep split and sets non selected labels to -100"
+   },
+   {
+    "q": "which model gets used when someone asks for a task without naming a checkpoint",
+    "answers": [
+     "pipelines/base.py:get_default_model_and_revision"
+    ],
+    "why": "pipelines/base.py:L275 - reads targeted_task['default'] and returns the default model plus revision; called from pipelines/__init__.py:L783 in the branch where no model was supplied"
+   },
+   {
+    "q": "how do weights from a downloaded checkpoint end up in the right places inside the model",
+    "answers": [
+     "core_model_loading.py:convert_and_load_state_dict_in_model"
+    ],
+    "why": "core_model_loading.py:L972 - renames each checkpoint key by the weight mapping rules, applies conversion ops (chunk, concatenate, merge experts, transpose, rope permute) and sets the resulting tensors on the modules; modeling_utils.py:L4182 in _load_pretrained_model is its only caller"
+   }
+  ],
+  "sympy": [
+   {
+    "q": "what combines like terms when a sum is built",
+    "answers": [
+     "core/add.py:flatten"
+    ],
+    "why": "core/add.py:L198 is Add.flatten (class Add starts at L93); its body keeps a term->coeff dict and does terms[s] += c at L321, which is where two equal terms in a sum get merged into one coefficient"
+   },
+   {
+    "q": "how are repeated pieces of a large expression pulled out and named once",
+    "answers": [
+     "simplify/cse_main.py:cse"
+    ],
+    "why": "simplify/cse_main.py:L728 defines cse, documented as performing common subexpression elimination and returning (Symbol, expression) replacement pairs plus the reduced expressions; codegen/ast.py:L746 only wraps it for a code block"
+   },
+   {
+    "q": "how does the library work out which method fits a differential equation",
+    "answers": [
+     "solvers/ode/ode.py:classify_ode"
+    ],
+    "why": "solvers/ode/ode.py:L819, whose docstring says it returns the tuple of possible classifications ordered so the first is the one dsolve uses by default"
+   },
+   {
+    "q": "which routine finds an antiderivative the way a student would on paper",
+    "answers": [
+     "integrals/manualintegrate.py:manualintegrate"
+    ],
+    "why": "integrals/manualintegrate.py:L2115, docstring: computes an indefinite integral 'using an algorithm that resembles what a student would do by hand'; Integral._eval_integral calls it as the manual method"
+   },
+   {
+    "q": "how are the eigenvalues of a matrix computed",
+    "answers": [
+     "matrices/eigen.py:_eigenvals"
+    ],
+    "why": "matrices/eigen.py:L80 holds the actual computation (roots of the characteristic polynomial, error_when_incomplete/rational/multiple handling); MatrixBase.eigenvals at matrices/matrixbase.py:L3330 is a one-line delegation to it"
+   },
+   {
+    "q": "how is a ratio of polynomials split into a sum of simpler fractions",
+    "answers": [
+     "polys/partfrac.py:apart"
+    ],
+    "why": "polys/partfrac.py:L15, docstring: 'Compute partial fraction decomposition of a rational function', offering the undetermined coefficients method and Bronstein's full algorithm"
+   },
+   {
+    "q": "how do I render an expression as latex markup",
+    "answers": [
+     "printing/latex.py:latex"
+    ],
+    "why": "printing/latex.py:L2968, the public function documented as converting the given expression to a LaTeX string, with all the printer settings as keywords"
+   },
+   {
+    "q": "how is an expression rewritten using facts already known about its symbols",
+    "answers": [
+     "assumptions/refine.py:refine"
+    ],
+    "why": "assumptions/refine.py:L11; it recurses over args and dispatches to _eval_refine / handlers_dict, and its docstring contrasts it with simplify as the one that uses assumptions (Basic.refine at core/basic.py:L1958 just calls it)"
+   },
+   {
+    "q": "how do you change a quantity into different units",
+    "answers": [
+     "physics/units/util.py:convert_to"
+    ],
+    "why": "physics/units/util.py:L52, documented as converting an expression so its units are expressed as factors of the target units, e.g. convert_to(mile, kilometer); Quantity.convert_to at physics/units/quantities.py:L119 delegates here"
+   },
+   {
+    "q": "how do I turn a formula into a fast numeric python callable",
+    "answers": [
+     "utilities/lambdify.py:lambdify"
+    ],
+    "why": "utilities/lambdify.py:L198, docstring: 'Convert a SymPy expression into a function that allows for fast numeric evaluation', generating and exec-ing the function source"
+   }
+  ],
+  "pandas": [
+   {
+    "q": "what turns a path or url into an open stream and deals with compression on the way",
+    "answers": [
+     "io/common.py:get_handle"
+    ],
+    "why": "io/common.py:L665 is the real body under three typing overloads; it calls _get_filepath_or_buffer for local/remote paths and then wraps the result in gzip/bz2/zip/zstd according to the compression argument, and every reader and writer opens its target through it"
+   },
+   {
+    "q": "where does assigning a value into a selected part of a frame actually take effect",
+    "answers": [
+     "core/indexing.py:_setitem_with_indexer"
+    ],
+    "why": "core/indexing.py:L1786; the shared __setitem__ at core/indexing.py:L884 ends with iloc._setitem_with_indexer(indexer, value, self.name), so both label and positional assignment funnel into this one method, which then splits the write across blocks"
+   },
+   {
+    "q": "how does pandas work out which rows belong to which group",
+    "answers": [
+     "core/groupby/grouper.py:get_grouper"
+    ],
+    "why": "core/groupby/grouper.py:L846; its docstring says it creates the BaseGrouper that is the internal mapping of how to build the group indexers, and GroupBy.__init__ calls it at core/groupby/groupby.py:L1331 to interpret keys, levels, functions or Grouper objects"
+   },
+   {
+    "q": "when two tables are merged on a key, what figures out which rows on each side line up",
+    "answers": [
+     "core/reshape/merge.py:get_join_indexers"
+    ],
+    "why": "core/reshape/merge.py:L1693 factorizes the left and right key arrays and returns the pair of positional indexers into each side; _MergeOperation._get_join_indexers at core/reshape/merge.py:L1120 is a one-line delegation to it"
+   },
+   {
+    "q": "how is a frequency table of two columns computed",
+    "answers": [
+     "core/reshape/pivot.py:crosstab"
+    ],
+    "why": "core/reshape/pivot.py:L578, docstring 'Compute a simple cross tabulation of two (or more) factors... computes a frequency table of the factors'; it is the only implementation and has no DataFrame method delegating to it"
+   },
+   {
+    "q": "what enforces the cap on how many values in a row may be filled",
+    "answers": [
+     "core/missing.py:_interp_limit"
+    ],
+    "why": "core/missing.py:L1079, docstring 'Get indexers of values that won't be filled because they exceed the limits'; _interpolate_1d calls it at core/missing.py:L495-L500 to build the set of gaps left untouched for forward, backward and both directions"
+   },
+   {
+    "q": "how are strings converted into real timestamps",
+    "answers": [
+     "core/tools/datetimes.py:to_datetime"
+    ],
+    "why": "core/tools/datetimes.py:L678 is the implementation under three overload stubs; the body dispatches scalars, Series, DataFrames and list-likes through convert_listlike and _assemble_from_unit_mappings (core/tools/datetimes.py:L1050 onward)"
+   },
+   {
+    "q": "given several different column types, what works out the single type they can all become",
+    "answers": [
+     "core/dtypes/cast.py:find_common_type"
+    ],
+    "why": "core/dtypes/cast.py:L1444 is the implementation under three overloads; docstring 'Find a common data type among the given dtypes', handling both numpy dtypes and extension dtypes"
+   },
+   {
+    "q": "what merges the separate chunks holding columns of the same type into one",
+    "answers": [
+     "core/internals/managers.py:_consolidate"
+    ],
+    "why": "core/internals/managers.py:L2278, docstring 'Merge blocks having same dtype, exclude non-consolidating blocks'; it groups blocks by their consolidate key and is what _consolidate_inplace (core/internals/managers.py:L1801) calls, with _merge_blocks as its per-group helper"
+   },
+   {
+    "q": "how does pandas decide which library actually draws a chart",
+    "answers": [
+     "plotting/_core.py:_get_plot_backend"
+    ],
+    "why": "plotting/_core.py:L1920; it reads the backend argument or the plotting.backend option, lazily imports and caches that module, and its docstring says the returned module provides the top-level plot method that does the drawing"
+   }
+  ],
+  "scipy": [
+   {
+    "q": "how do I fit a function with unknown parameters to measured data points",
+    "answers": [
+     "optimize/_minpack_py.py:curve_fit"
+    ],
+    "why": "optimize/_minpack_py.py:L590, docstring reads 'Use non-linear least squares to fit a function, f, to data' and the body builds p0/sigma and drives leastsq or least_squares, returning popt and the covariance."
+   },
+   {
+    "q": "how is a system of ordinary differential equations advanced through time from a starting state",
+    "answers": [
+     "integrate/_ivp/ivp.py:solve_ivp"
+    ],
+    "why": "integrate/_ivp/ivp.py:L159, 'Solve an initial value problem for a system of ODEs'; the body runs the while loop calling solver.step() until t_span is covered, so it is the driver, not a helper."
+   },
+   {
+    "q": "how do I interpolate scattered data in several dimensions",
+    "answers": [
+     "interpolate/_ndgriddata.py:griddata"
+    ],
+    "why": "interpolate/_ndgriddata.py:L170, docstring 'Convenience function for interpolating unstructured data in multiple dimensions'; it dispatches to the Nearest/Linear/CloughTocher ND interpolators and is the documented entry point."
+   },
+   {
+    "q": "how do I subtract a slow drift from a recorded signal",
+    "answers": [
+     "signal/_signaltools.py:detrend"
+    ],
+    "why": "signal/_signaltools.py:L4120, 'Remove linear or constant trend along axis from data' \u2014 the body subtracts a least-squares linear (or mean) fit, optionally per break-point segment."
+   },
+   {
+    "q": "how do I solve a linear system whose matrix is sparse",
+    "answers": [
+     "sparse/linalg/_dsolve/linsolve.py:spsolve"
+    ],
+    "why": "sparse/linalg/_dsolve/linsolve.py:L134, 'Solve the sparse linear system Ax=b'; it converts A to CSC/CSR and calls SuperLU or UMFPACK, so it is the sparse direct solver entry point."
+   },
+   {
+    "q": "how do I get the distance between every pair of points from two separate sets",
+    "answers": [
+     "spatial/distance.py:cdist"
+    ],
+    "why": "spatial/distance.py:L2793, 'Compute distance between each pair of the two collections of inputs' \u2014 takes XA and XB, unlike pdist which works within one set."
+   },
+   {
+    "q": "how is a confidence interval built by resampling the observed data with replacement",
+    "answers": [
+     "stats/_resampling.py:bootstrap"
+    ],
+    "why": "stats/_resampling.py:L281, 'Compute a two-sided bootstrap confidence interval of a statistic'; the body loops over batches calling _bootstrap_resample, then forms the percentile/basic/BCa interval and returns BootstrapResult."
+   },
+   {
+    "q": "how is a matrix factored into an orthogonal part and an upper triangular part",
+    "answers": [
+     "linalg/_decomp_qr.py:qr"
+    ],
+    "why": "linalg/_decomp_qr.py:L28, 'Calculate the decomposition A = Q R where Q is unitary/orthogonal and R upper triangular'; the body calls the LAPACK geqrf/geqp3 and orgqr routines and assembles Q and R per mode."
+   },
+   {
+    "q": "how are observations merged step by step into a nested hierarchy of groups",
+    "answers": [
+     "cluster/hierarchy.py:linkage"
+    ],
+    "why": "cluster/hierarchy.py:L814, 'Perform hierarchical/agglomerative clustering'; the body picks and calls _hierarchy.mst_single_linkage / nn_chain / fast_linkage and returns the (n-1)x4 merge matrix Z."
+   },
+   {
+    "q": "how do I read a MATLAB data file",
+    "answers": [
+     "io/matlab/_mio.py:loadmat"
+    ],
+    "why": "io/matlab/_mio.py:L87, 'Load MATLAB file' \u2014 opens the .mat file, builds the version-appropriate MatFile reader and returns the variables dict."
+   }
+  ]
+ }
+}
