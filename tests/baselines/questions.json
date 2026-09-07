@@ -5,7 +5,7 @@
   "how does caching work": -1,
   "how does cross site request forgery protection work": -1,
   "how is a form field defined": -1,
-  "how is a template rendered": -1,
+  "how is a template rendered": 2,
   "how is a user authenticated": -1,
   "how is an http response built": 0,
   "how is the admin interface configured for a model": 1,
@@ -14,7 +14,7 @@
  "go-grpc": {
   "how does a client connect to a server": -1,
   "how does the server start accepting connections": -1,
-  "how is a new server created": -1,
+  "how is a new server created": 2,
   "how is a service registered on the server": -1,
   "how is a single unary call invoked": -1,
   "how is transport security set when dialing": 0,
@@ -30,7 +30,7 @@
   "how is a new logger created": 0,
   "how is output formatted as json": 0,
   "how is output formatted as plain text": 0,
-  "how is the minimum level to log set": -1,
+  "how is the minimum level to log set": 2,
   "what carries the fields of a single log record": -1,
   "what interface does a formatter implement": 0,
   "what is the main logger object": 0
@@ -81,7 +81,7 @@
   "what class holds the response body": 0,
   "what makes header lookups case insensitive": 0,
   "what raises an exception for a bad status code": 0,
-  "where are cookies kept between requests": -1
+  "where are cookies kept between requests": 2
  },
  "rich": {
   "how are colours and styles named": -1,
@@ -133,7 +133,7 @@
  },
  "ts-zod": {
   "how are error messages translated to another language": -1,
-  "how are validation errors represented": -1,
+  "how are validation errors represented": 2,
   "how is a json schema generated from a schema": -1,
   "how is a string schema defined": -1,
   "how is an array schema defined": -1,

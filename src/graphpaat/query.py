@@ -114,6 +114,14 @@ TEST_MARKS = ("/test", "test_", "_test.", ".test.", "/spec", "_spec.", "conftest
 # through it: two hops through Django's ValidationError reaches half the repo.
 HUB_DEGREE = 40
 
+# How many seeds may share one name. zod ships forty locale files each defining
+# `error`, and three of them took the whole answer; grpc has the same shape.
+# Capping at one scores two questions better still, but it hides the fact that a
+# name is ambiguous at all -- and Django's three different `Field` classes are
+# exactly the case where knowing that is the answer. Two seats says "this name
+# is used more than once" without spending the budget proving it.
+PER_NAME = 2
+
 CHARS_PER_TOKEN = 4
 
 
@@ -366,7 +374,17 @@ def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int
 
     # Among equals, the symbol the codebase leans on, then the shorter name.
     scored.sort(key=lambda s: (-s[0], -degree.get(s[1], 0), s[2], s[1]))
-    return [nid for _, nid, _ in scored[:limit]], max(0, len(scored) - limit)
+    label_of = {row[0]: row[1] for row in rows}
+    seeds, times = [], defaultdict(int)
+    for _total, nid, _len in scored:
+        if len(seeds) >= limit:
+            break
+        name = label_of[nid]
+        if times[name] >= PER_NAME:
+            continue
+        times[name] += 1
+        seeds.append(nid)
+    return seeds, max(0, len(scored) - len(seeds))
 
 
 def neighbourhood(graph: dict, seeds: list[str], depth: int = 2

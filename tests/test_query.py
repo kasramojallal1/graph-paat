@@ -138,10 +138,19 @@ class TestRanking:
         assert seeds[0] == "hot_handle"
 
     def test_reports_how_many_more_matched(self, corpus, tmp_path):
-        graph = graph_of(corpus({f"f{i}.py": "def thing():\n    pass\n" for i in range(9)}),
-                         tmp_path / "out")
+        graph = graph_of(corpus({f"f{i}.py": f"def thing_{i}():\n    pass\n"
+                                 for i in range(9)}), tmp_path / "out")
         seeds, more = match(graph, ["thing"], limit=3)
         assert len(seeds) == 3 and more == 6
+
+    def test_one_name_cannot_fill_the_whole_answer(self, corpus, tmp_path):
+        # zod ships forty locale files each defining `error`; three of them took
+        # the entire answer and said nothing the first one had not.
+        graph = graph_of(corpus({f"loc{i}.py": "def error():\n    pass\n"
+                                 for i in range(9)}), tmp_path / "out")
+        seeds, more = match(graph, ["error"], limit=3)
+        assert len(seeds) == 2, "two seats per name, so the ambiguity is still visible"
+        assert more == 7
 
     def test_relation_words_do_not_seed(self, corpus, tmp_path):
         # "what calls login" must not seat a root on `calls`.
