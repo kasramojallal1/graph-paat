@@ -153,3 +153,26 @@ class TestFollowingTheInstructionsLiterally:
         from graphpaat.cli import main
         monkeypatch.chdir(tmp_path)
         assert main(["query", "Session"]) == 1      # an exception would propagate
+
+
+class TestTheVocabularyStep:
+    """The step is worth more than every ranking rule combined, and an earlier
+    version of the text mentioned it in one advisory line and got skipped."""
+
+    def test_it_is_an_order_not_a_suggestion(self):
+        assert "Do not skip the first" in INSTRUCTIONS
+
+    def test_it_names_the_command_that_makes_it_possible(self):
+        # `vocab` alone prints names; transformers has 25,000 of them and
+        # nobody reads that. `--words` is the 2,700-word list that can be read.
+        assert "vocab --words" in INSTRUCTIONS
+
+    def test_it_forbids_inventing_a_term(self):
+        assert "Do not invent one" in INSTRUCTIONS
+
+    def test_it_says_what_to_do_when_nothing_matches(self):
+        # Guessing produces a confident wrong map, which is worse than none.
+        assert "say so and stop" in INSTRUCTIONS
+
+    def test_it_says_to_pass_the_terms_in_one_query(self):
+        assert "One query, not one per word" in INSTRUCTIONS

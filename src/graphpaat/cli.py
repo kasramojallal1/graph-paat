@@ -8,7 +8,7 @@ from pathlib import Path
 from . import store
 from . import instructions
 from .build import assemble
-from .query import match, ranked_names, render, vocabulary
+from .query import match, ranked_names, render, vocabulary, word_vocabulary
 
 
 def build(root: Path, out: Path | None = None) -> int:
@@ -81,11 +81,23 @@ def build(root: Path, out: Path | None = None) -> int:
     return 0
 
 
-def vocab(out: Path | None, contains: str | None, limit: int) -> int:
+def vocab(out: Path | None, contains: str | None, limit: int,
+          as_words: bool = False) -> int:
     """Publish the graph's names so the calling agent can expand a question
     against them (D9). Optionally filtered, because 11,000 names is a lot to
     hand a model that only needs the ones near one topic."""
     graph = store.read(Path("."), out=out)
+    if as_words:
+        # The whole list, unfiltered and unlimited: it exists to be read in one
+        # go and turned into search terms, so truncating it defeats the point.
+        found = word_vocabulary(graph)
+        if contains:
+            found = [w for w in found if contains.lower() in w]
+        print(f"{len(found)} words used in names in this codebase.")
+        print("Pick the ones that match your question and pass them to `query`.")
+        print("A word that is not here cannot be found - do not invent one.\n")
+        print("\n".join(found))
+        return 0
     names = ranked_names(graph)
     if contains:
         names = [n for n in names if contains.lower() in n.lower()]
@@ -153,6 +165,7 @@ USAGE = """usage:
   graph-paat build <path> [--out <dir>]
   graph-paat overview [--top N] [--out <dir>]
   graph-paat install [--host claude|agents|gemini|cursor|copilot] [--all] [--remove]
+  graph-paat vocab --words [--out <dir>]        every word used in a name
   graph-paat vocab [--contains <text>] [--limit N] [--out <dir>]
   graph-paat query <term> [<term>...] [--budget N] [--depth N] [--seeds N]
                                      [--per-node N] [--out <dir>]"""
@@ -206,7 +219,7 @@ def _run(argv: list[str]) -> int:
     if command == "vocab":
         contains, rest = _take(rest, "--contains")
         limit, rest = _take(rest, "--limit", int, 60)
-        return vocab(out, contains, limit)
+        return vocab(out, contains, limit, as_words="--words" in rest)
     budget, rest = _take(rest, "--budget", int, 2000)
     depth, rest = _take(rest, "--depth", int, 2)
     seeds_wanted, rest = _take(rest, "--seeds", int, 6)

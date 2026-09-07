@@ -3,7 +3,8 @@ from graphpaat import store
 from graphpaat.ids import Collisions
 from graphpaat.parse import parse_corpus_files
 from graphpaat.query import (_query_terms, estimate_tokens, forms, match,
-                             neighbourhood, render, stem, vocabulary, words)
+                             neighbourhood, render, stem, vocabulary, word_vocabulary,
+                             words)
 from graphpaat.resolve import resolve
 
 
@@ -371,3 +372,38 @@ class TestRankingRules:
             tmp_path / "out")
         seeds, _ = match(graph, ["file", "queryset"])
         assert seeds[0] == "a_queryset_file"
+
+
+class TestWordVocabulary:
+    """The list an agent reads before choosing search terms."""
+
+    def test_it_gives_words_not_names(self, corpus, tmp_path):
+        graph = graph_of(corpus({"m.py": "def classify_file(p):\n    pass\n"}),
+                         tmp_path / "out")
+        found = word_vocabulary(graph)
+        assert "classify" in found and "file" in found
+        assert "classify_file" not in found
+
+    def test_it_splits_camel_case_too(self, corpus, tmp_path):
+        graph = graph_of(corpus({"m.py": "class NewClient:\n    pass\n"}),
+                         tmp_path / "out")
+        assert {"new", "client"} <= set(word_vocabulary(graph))
+
+    def test_it_drops_words_too_short_to_search_with(self, corpus, tmp_path):
+        graph = graph_of(corpus({"m.py": "def a_b_thing():\n    pass\n"}),
+                         tmp_path / "out")
+        found = word_vocabulary(graph)
+        assert "thing" in found and "a" not in found and "b" not in found
+
+    def test_each_word_appears_once(self, corpus, tmp_path):
+        graph = graph_of(corpus({"m.py": ("def read_file():\n    pass\n"
+                                          "def write_file():\n    pass\n")}),
+                         tmp_path / "out")
+        found = word_vocabulary(graph)
+        assert found.count("file") == 1
+
+    def test_a_docstring_is_not_vocabulary(self, corpus, tmp_path):
+        # Docstrings are searched, but their bookkeeping labels are not names.
+        graph = graph_of(corpus({"m.py": "def go():\n    '''hello'''\n"}),
+                         tmp_path / "out")
+        assert not any("docstring" in w for w in word_vocabulary(graph))

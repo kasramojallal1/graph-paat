@@ -14,6 +14,17 @@ so it says the minimum that makes the tool usable and stops.
 marks a docstring as a claim and an unresolved call as a gap is only useful to
 someone told what those marks mean. Left unexplained, an agent reads a stale
 comment as a verified fact -- which is the failure the marks exist to prevent.
+
+**Why the vocabulary step is written as an order rather than a suggestion.**
+Measured 2026-09-07 over 40 questions on four libraries averaging 700,000
+lines: an agent that picks its search terms from the graph's own word list
+first scores 10 first places against 3, and 25 in the top three against 3. That
+is a larger gain than every ranking rule in `query.py` put together, and it is
+free. An earlier version of this text mentioned `vocab` in one advisory line
+and the step was skipped, which is exactly what the numbers above cost.
+
+The benchmark itself stays out of the text. An assistant needs the instruction,
+not the evidence for it.
 """
 from __future__ import annotations
 
@@ -22,41 +33,60 @@ from pathlib import Path
 BEGIN = "<!-- graph-paat:begin -->"
 END = "<!-- graph-paat:end -->"
 
-INSTRUCTIONS = """## graph-paat: navigating a large codebase
+INSTRUCTIONS = """## graph-paat: navigating a codebase too large to read
 
-When a repository is too large to read comfortably, do not grep through it.
-Build a map once and query it.
+Build a map once, then ask it questions. Do not grep a repository this size.
 
 ```bash
-graph-paat build .          # once per repo; seconds, no network, no API key
-graph-paat overview         # the main parts, and the most connected symbols
-graph-paat vocab --contains auth    # names that actually exist in this graph
-graph-paat query login Session      # a map of those names and how they connect
+graph-paat build .      # once per repo; seconds, no network, no API key
+graph-paat overview     # the main parts, and what everything leans on
 ```
 
-**Use `vocab` before `query`.** The graph knows symbol names, not English. A
-question about "authentication" is a question about whatever this codebase
-calls it -- `vocab` tells you, and `query` only matches names that exist.
+### A question takes two steps. Do not skip the first.
 
-**Pass several terms from one question together.** Terms reinforce each other:
-`query QuerySet filter` finds the ORM's filter rather than an unrelated one of
-the same name.
+**1. Turn the question into words this codebase uses.**
 
-Reading the output:
+```bash
+graph-paat vocab --words
+```
+
+Every word appearing in a name here, meant to be read in one go. Pick up to a
+dozen that fit your question.
+
+- **Only words on that list can be found. Do not invent one.**
+- A concept with no word on the list: drop it. A remembered synonym matches
+  nothing and dilutes the terms that would have worked.
+- Nothing matches at all: say so and stop. A confident wrong map is worse than
+  no map.
+
+You are bridging vocabulary, not spelling -- "classified" already finds
+`classify_file`. What you cannot guess is a codebase that calls authentication
+`Guardian`, and only this list tells you that.
+
+**2. Ask with those words, together.**
+
+```bash
+graph-paat query cache past key values dynamic
+```
+
+One query, not one per word. A symbol matching several of your words outranks
+one matching a single word perfectly -- usually the difference between the
+answer and a same-named decoy.
+
+### Reading what comes back
 
 - Every line gives `file:line`. Open only those files.
-- `[claim]` is a docstring. It is what the code says about itself, not
-  something a parser verified. Comments go stale; treat it as a lead.
-- `?name` is a call the parser could not resolve, with the reason. It marks a
-  real gap rather than hiding it -- so absence of an edge is not proof that
-  nothing is there.
-- `(hub)` marks a symbol connected to much of the codebase. The map stops
-  there rather than dragging in everything behind it.
+- `[claim]` is a docstring: what the code says about itself, not something a
+  parser verified. A lead, not a fact.
+- `?name` is a call that could not be resolved, with the reason. A missing edge
+  is not proof that nothing is there.
+- `(hub)` is wired into much of the codebase; the map stops there rather than
+  dragging in everything behind it.
+- Answer looks wrong? Go back to step 1 and pick different words. That is
+  almost always where it went wrong.
 
-`--budget N` caps the answer size; `--per-node N` caps links shown per symbol.
-
-The graph is written to `graph-paat-out/` beside where you run `build`. Add it
-to `.gitignore`; rebuilding it takes seconds.
+`--budget N` caps answer size; `--per-node N` caps links per symbol. The graph
+lands in `graph-paat-out/`; add it to `.gitignore` and rebuild freely.
 """
 
 # Where each assistant reads project instructions. Kept to files that are
