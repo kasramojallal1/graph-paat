@@ -170,3 +170,19 @@ def _run(root):
             nodes.append(node)
         edges.extend(parsed.edges)
     return nodes, edges, collisions, failed
+
+
+class TestAFileThatCannotBeWalked:
+    """One unreadable file must not take a whole repository with it."""
+
+    def test_a_deeply_nested_expression_is_reported_not_fatal(self, corpus, tmp_path):
+        # sympy ships a generated lookup table whose expressions nest deeply
+        # enough to exhaust the interpreter stack during the walk. It killed a
+        # 1,532-file build outright.
+        deep = "x = " + "(" * 400 + "1" + ")" * 400 + "\n"
+        root = corpus({"generated.py": deep, "real.py": "def works():\n    pass\n"})
+        files, failed = parse_corpus_files(root)
+
+        assert "generated.py" in failed, "the gap has to be visible"
+        labels = {n.label for parsed in files for n in parsed.nodes}
+        assert "works" in labels, "every other file still parses"

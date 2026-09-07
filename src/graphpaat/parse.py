@@ -143,7 +143,19 @@ def parse_corpus_files(root: Path) -> tuple[list[ParsedFile], list[str]]:
     parsed_files: list[ParsedFile] = []
     failed: list[str] = []
     for path in collect(root):
-        parsed = parse_file(path, root)
+        try:
+            parsed = parse_file(path, root)
+        except RecursionError:
+            # A single deeply nested expression -- a generated table, a long
+            # chain of binary operators -- exhausts the interpreter stack while
+            # walking the tree. Python's own parser produced the tree happily;
+            # it is the walk that cannot finish.
+            #
+            # Found on sympy, where it killed a 1,532-file build outright. That
+            # is the worst failure this tool can have: it exists for repositories
+            # too large to read, and one file made all of them unreadable. A file
+            # we cannot walk is a gap to report, exactly like one we cannot parse.
+            parsed = None
         if parsed is None:
             failed.append(str(path.relative_to(root)))
             continue
