@@ -30,6 +30,14 @@ written entirely that way -- every symbol in its six files is an assignment --
 and reading only `import` and declarations gives it six file nodes and nothing
 else. The same goes for `View.prototype.render = ...`, which is what a method
 was before `class` existed.
+
+**And a function is often declared inside another function.** `function done()`
+sits inside the adapter in `adapters/xhr.js`; `const getBodyLength = async
+(body) => ...` sits inside the fetch adapter. Neither is visible from the
+file's top level, and a walk that reads only the top level therefore misses
+them -- measured 2026-09-08 across two corpora, that single shape was most of
+the gap between what these files declare and what the graph held. See
+`_Reader.walk_body`.
 """
 from __future__ import annotations
 
@@ -113,8 +121,10 @@ def _declarators(node):
 
     Direct children on purpose. Searching the whole subtree also finds every
     binding inside a function assigned to the const, and those are not
-    top-level functions -- emitting them would mint an unscoped id per nested
-    helper and collide the moment two functions each have a local `handler`.
+    top-level functions -- emitting them from here would mint an unscoped id
+    per nested helper and collide the moment two functions each have a local
+    `handler`. Those bindings are read by `_Reader.walk_body` instead, which
+    knows the chain of names to qualify them with.
     """
     return [c for c in node.children if c.type == "variable_declarator"]
 
@@ -156,6 +166,51 @@ def _unwrap(node):
     return node
 
 
+def _object_label(obj, src: bytes) -> str | None:
+    """The name an object literal was bound to, or None.
+
+    Only these three: a `const`, a key in an enclosing literal, and an
+    assignment. Anything else -- an argument, a return value, an array element
+    -- is anonymous, and an anonymous object's members cannot be qualified.
+    """
+    parent = obj.parent
+    if parent is None:
+        return None
+    if parent.type == "variable_declarator":
+        name = _named(parent, "identifier")
+        return _text(name, src) if name is not None else None
+    if parent.type == "pair":
+        key = _named(parent, "property_identifier")
+        return _text(key, src) if key is not None else None
+    if parent.type == "assignment_expression":
+        lhs = parent.children[0]
+        if lhs.type == "identifier":
+            return _text(lhs, src)
+        if lhs.type == "member_expression":
+            key = _named(lhs, "property_identifier")
+            return _text(key, src) if key is not None else None
+    return None
+
+
+def _object_member(member, src: bytes):
+    """`(name, function)` for a function member of an object literal.
+
+    `{ foo() {} }` is a method_definition and `{ foo: function () {} }` is a
+    pair; both are a named function, and neither is a class method. A computed
+    key -- `{ [k]: fn }` -- names nothing stable and returns nothing.
+    """
+    if member.type == "method_definition":
+        name = _method_name(member, src)
+        return (name, member) if name is not None else (None, None)
+    if member.type == "pair":
+        key = _named(member, "property_identifier")
+        value = member.children[-1]
+        if key is not None and value.type in ("arrow_function", "function_expression",
+                                              "generator_function"):
+            return _text(key, src), value
+    return None, None
+
+
 def _method_name(node, src: bytes) -> str | None:
     """The name of a class member, with `#` stripped off a private one.
 
@@ -173,12 +228,22 @@ class _Reader:
         self.p = parsed
         self.src = src
 
-    def emit(self, name, kind, node, doc_node=None, scope=None, bases=None) -> str:
+    def emit(self, name, kind, node, doc_node=None, scope=None, bases=None,
+             container=None) -> str:
         nid = mint(self.p.prefix, name, scope or [])
         line = node.start_point[0] + 1
         self.p.nodes.append(Node(id=nid, label=name, kind=kind, file=self.p.path,
                                  line=line, bases=bases))
-        container = mint(self.p.prefix, scope[0]) if scope else self.p.prefix
+        # What contains this is the LAST name in the chain, not the first. With
+        # only classes and their methods the two were the same thing; once a
+        # helper can sit three deep -- class, method, helper -- taking the first
+        # would hang it off the class and skip the method that actually holds
+        # it. `container` overrides this for the one case where the enclosing
+        # name has no node of its own: an object literal (see `walk_members`).
+        if container is None:
+            scope = scope or []
+            container = mint(self.p.prefix, scope[-1], scope[:-1]) if scope \
+                else self.p.prefix
         self.p.edges.append(Edge(source=container, target=nid, relation="contains",
                                  file=self.p.path, line=line))
         doc = _doc_above(doc_node if doc_node is not None else node, self.src)
@@ -228,11 +293,41 @@ class _Reader:
             if attr is not None and ctor is not None:
                 self.p.attr_types[f"{owner}::{_text(attr, self.src)}"] = _text(ctor, self.src)
 
-    def calls_in(self, body, caller: str) -> None:
-        """Every call inside a body, with what it was called on."""
-        stack = [body]
+    def walk_body(self, body, caller: str, scope: list[str]) -> None:
+        """Every call inside a body -- and every function declared inside it.
+
+        A helper declared inside another function does real work. axios settles
+        its whole request in `done()`, declared inside the adapter in
+        `adapters/xhr.js`, and computes upload size in `getBodyLength`, a const
+        inside the fetch adapter. Neither name appears at the file's top level,
+        so a top-level-only walk left both out of the map. `ids.mint` already
+        states the house position on this -- a nested helper can do real work
+        and being invisible is worse than being verbose -- and Python has always
+        emitted them; JavaScript was the one language that did not.
+
+        The chain of enclosing names goes into the id, which is the whole
+        reason `mint` takes one. Two adapters in the same file may each declare
+        a `done`, and unqualified they mint a single id and one of the two is
+        destroyed silently.
+
+        **An anonymous function is not a boundary.** A callback has no name to
+        be called by, so a node for it would be unreachable; the walk goes
+        straight through it and its calls stay with the function that wrote it.
+        A named one is a boundary: the walk stops there and resumes inside with
+        the longer chain, so a call is attributed to the innermost function
+        that encloses it, exactly as the Python reader does it.
+
+        The cost is real and worth stating. The file gets more nodes, and a bare
+        `foo()` gets harder to resolve: a helper sharing a name with a top-level
+        function is now a second candidate in that file, and the resolver
+        refuses a choice it cannot make rather than guessing. A refusal is an
+        honest answer; a function that is simply absent from the map is not.
+        """
+        stack = list(body.children)
         while stack:
             node = stack.pop()
+            if self._nested(node, scope, caller):
+                continue               # emitted; its insides belong to it now
             if node.type == "call_expression":
                 fn = node.children[0] if node.children else None
                 if fn is not None and fn.type == "identifier":
@@ -250,6 +345,110 @@ class _Reader:
                         caller=caller, file=self.p.path,
                         line=node.start_point[0] + 1, name=_text(ident, self.src)))
             stack.extend(node.children)
+
+    def _nested(self, node, scope: list[str], container: str) -> bool:
+        """Emit `node` if it names a function or a class, and read inside it.
+
+        True means "handled" -- the caller must not keep walking this subtree,
+        because everything in it now belongs to the deeper scope.
+
+        Four of the shapes are the ones the top level already reads -- `function
+        done() {}`, `const done = () => {}`, `class X {}`, `const X = class {}`
+        -- and that is the point: they mean the same thing wherever they are
+        written. Two more only ever appear inside something else: a function
+        expression given a name, and a named object literal's members.
+        """
+        if node.type in ("function_declaration", "generator_function_declaration"):
+            name = _named(node, "identifier")
+            if name is None:
+                return False
+            self._emit_nested(_text(name, self.src), node, node, node,
+                              scope, container)
+            return True
+        if node.type == "class_declaration":
+            if _named(node, "identifier") is None:
+                return False
+            _class(node, node, self.src, self, self.p, scope=scope)
+            return True
+        if node.type in ("function_expression", "generator_function"):
+            # `new Promise(function dispatchXhrRequest(resolve, reject) {...})`
+            # -- a function expression that was given a name. Authors write the
+            # name for the stack trace, and axios's whole XHR adapter lives in
+            # one, with `done` and `onCanceled` declared inside it. Without this
+            # those helpers would have to hang off the file with nothing between
+            # them and it, and two callbacks in one file each declaring a `done`
+            # would mint one id.
+            #
+            # An anonymous function expression is deliberately NOT handled here:
+            # it has no name, so it gets no node and the walk passes through it.
+            name = _named(node, "identifier")
+            if name is None:
+                return False
+            self._emit_nested(_text(name, self.src), node, node, node,
+                              scope, container)
+            return True
+        if node.type == "variable_declarator":
+            name = _named(node, "identifier")
+            if name is None:
+                return False           # `const {a, b} = x` binds no function
+            label = _text(name, self.src)
+            # The JSDoc sits above the whole `const ...` statement, not above
+            # the binding inside it, so the doc has to be looked for there.
+            stmt = node.parent if node.parent is not None else node
+            cls = _named(node, "class")
+            if cls is not None:
+                _class(cls, stmt, self.src, self, self.p, name=label, scope=scope)
+                return True
+            fn = _named(node, "arrow_function", "function_expression",
+                        "generator_function")
+            if fn is None:
+                return False           # an ordinary value; walk it as usual
+            self._emit_nested(label, node, stmt, fn, scope, container)
+            return True
+        if node.type == "object":
+            # `const codes = { ok() {...} }` -- the members are functions and
+            # the object is the only thing qualifying them. An object with no
+            # name to borrow (an options bag passed straight to a call) is left
+            # alone: two of those in one function would mint one id per shared
+            # key, and losing one is worse than never emitting either.
+            owner = _object_label(node, self.src)
+            if owner is None:
+                return False
+            self.walk_members(node, container, scope, owner)
+            return True
+        return False
+
+    def _emit_nested(self, label: str, node, doc_node, fn, scope: list[str],
+                     container: str) -> None:
+        nid = self.emit(label, "function", node, doc_node=doc_node,
+                        scope=scope, container=container)
+        chain = scope + [label]
+        self.types_in(fn, ".".join(chain))
+        self.walk_body(_named(fn, "statement_block") or fn, nid, chain)
+
+    def walk_members(self, obj, container: str, scope: list[str],
+                     owner: str) -> None:
+        """The function members of a named object literal.
+
+        `{ foo() {} }` and `{ foo: function () {} }` are the two spellings, and
+        both are how JavaScript wrote a namespace before modules existed.
+
+        They are emitted as functions, not methods: nothing here is an instance
+        of a class, so calling them methods would send the resolver looking for
+        an owning class that does not exist. The cost is that a call written
+        `codes.ok()` still refuses -- the object has no node to be typed by.
+
+        Every other member is ordinary code and keeps the same caller, so a call
+        in `{ limit: compute() }` stays with the function that wrote the literal
+        rather than being attributed to the object.
+        """
+        chain = scope + [owner]
+        for member in obj.children:
+            label, fn = _object_member(member, self.src)
+            if label is None or fn is None:
+                self.walk_body(member, container, chain)
+                continue
+            self._emit_nested(label, member, member, fn, chain, container)
 
     def _member_call(self, node, fn, caller: str) -> None:
         """`x.foo()` -- who `x` is, as far as the source actually says.
@@ -329,6 +528,16 @@ def parse(source: str, parsed: ParsedFile) -> bool:
             if spec is not None:
                 parsed.import_sites.append((_module_path(spec, parsed.path),
                                             node.start_point[0] + 1))
+        elif node.type == "export_statement":
+            # `export default <expression>`: unwrapping found no declaration, so
+            # the exported thing has no declared name. axios ships whole
+            # adapters this way -- `export default isXHRAdapterSupported &&
+            # function (config) {...}` is the entire XHR adapter, and reading
+            # only declarations left that file with a file node and nothing
+            # else. The expression is walked at file scope: nothing here can
+            # lend its name, so anything named inside is qualified by the file
+            # alone, which is what an id for a top-level function looks like.
+            reader.walk_body(node, parsed.prefix, [])
         elif node.type == "class_declaration":
             _class(node, outer, src, reader, parsed)
         elif node.type in ("function_declaration", "generator_function_declaration"):
@@ -339,7 +548,7 @@ def parse(source: str, parsed: ParsedFile) -> bool:
                 reader.types_in(node, label)
                 body = _named(node, "statement_block")
                 if body is not None:
-                    reader.calls_in(body, nid)
+                    reader.walk_body(body, nid, [label])
         elif node.type in ("lexical_declaration", "variable_declaration"):
             _bindings(node, outer, src, reader, parsed)
         elif node.type == "expression_statement":
@@ -408,13 +617,18 @@ def _heritage(node, src: bytes) -> list[str]:
 
 
 def _class(node, outer, src: bytes, reader: _Reader, parsed: ParsedFile,
-           name: str | None = None) -> None:
+           name: str | None = None, scope: list[str] | None = None) -> None:
+    """`scope` is the chain of functions this class is declared inside, empty at
+    the top level. A class defined in a factory is still a class, and its
+    methods have to carry the factory's name or two factories in one file mint
+    the same ids for their two different classes."""
+    scope = scope or []
     name_node = _named(node, "identifier")
     label = name if name is not None else (
         _text(name_node, src) if name_node is not None else None)
     if label is None:
         return
-    reader.emit(label, "class", node, doc_node=outer,
+    reader.emit(label, "class", node, doc_node=outer, scope=scope or None,
                 bases=_heritage(node, src) or None)
     parsed.defined_classes.add(label)
     body = _named(node, "class_body")
@@ -440,14 +654,15 @@ def _class(node, outer, src: bytes, reader: _Reader, parsed: ParsedFile,
         if member_name is None or member_name in seen:
             continue
         seen.add(member_name)
-        nid = reader.emit(member_name, "method", member, scope=[label])
+        chain = scope + [label]
+        nid = reader.emit(member_name, "method", member, scope=chain)
         parsed.owner_of[nid] = label
-        reader.types_in(fn, f"{label}.{member_name}")
+        reader.types_in(fn, ".".join(chain + [member_name]))
         reader.self_types_in(fn, label)
         block = _named(fn, "statement_block") or _named(
             fn, "arrow_function", "function_expression")
         if block is not None:
-            reader.calls_in(block, nid)
+            reader.walk_body(block, nid, chain + [member_name])
 
 
 def _bindings(node, outer, src: bytes, reader: _Reader, parsed: ParsedFile) -> None:
@@ -471,11 +686,17 @@ def _bindings(node, outer, src: bytes, reader: _Reader, parsed: ParsedFile) -> N
             continue
         fn = _named(decl, "arrow_function", "function_expression", "generator_function")
         if fn is None:
+            obj = _named(decl, "object")
+            if obj is not None:
+                # `const codes = { ok() {} }` -- a namespace object. The object
+                # itself gets no node, so the file has to be the container or
+                # the containment edge would point at an id nobody minted.
+                reader.walk_members(obj, parsed.prefix, [], label)
             continue
         nid = reader.emit(label, "function", decl, doc_node=outer)
         reader.types_in(fn, label)
         body = _named(fn, "statement_block") or fn
-        reader.calls_in(body, nid)
+        reader.walk_body(body, nid, [label])
 
 
 def _assignment(stmt, src: bytes, reader: _Reader, parsed: ParsedFile,
@@ -546,7 +767,7 @@ def _emit_assigned(stmt, rhs, label: str, kind: str, src: bytes, reader: _Reader
         reader.self_types_in(rhs, owner)
     reader.types_in(rhs, f"{owner}.{label}" if owner else label)
     body = _named(rhs, "statement_block") or rhs
-    reader.calls_in(body, nid)
+    reader.walk_body(body, nid, (scope or []) + [label])
 
 
 def _module_path(spec: str, from_path: str) -> str:

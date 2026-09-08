@@ -239,6 +239,206 @@ function Derived:stop() end
         assert ("m_picker", "m_picker_new") in got
 
 
+SORTERS = {"m.lua": '''
+local Sorter = {}
+function Sorter:new(opts) end
+
+local M = {}
+
+M.get_fuzzy_file = function(opts)
+  return Sorter:new {
+    --- Scores one line.
+    scoring_function = function(_, prompt, line) end,
+  }
+end
+
+M.get_fzy_sorter = function(opts)
+  return Sorter:new {
+    scoring_function = function(_, prompt, line) end,
+  }
+end
+'''}
+
+
+class TestFunctionsBelowTheTopLevel:
+    """A Lua file's behaviour is mostly written under its top level.
+
+    A field of a table handed to a call, and a helper declared inside a
+    factory, are both real functions with real names, and reading only
+    `function M.f()` left both out. These pin down that they arrive, that the
+    scope keeps the repeated names apart, and that nothing anonymous is
+    invented.
+    """
+
+    def test_a_function_field_of_a_table_argument_is_a_node(self, luacorpus):
+        # `Sorter:new { scoring_function = ... }` -- the table is an argument,
+        # so no assignment target ever names the function.
+        k = kinds(luacorpus(SORTERS))
+        assert k["m_get_fuzzy_file_scoring_function"] == "function"
+
+    def test_a_repeated_field_name_is_kept_apart_by_its_enclosing_function(
+            self, luacorpus):
+        # One real corpus writes eight fields called `scoring_function` in one
+        # file. Scoped by the file they would mint one id and lose seven.
+        k = kinds(luacorpus(SORTERS))
+        assert k["m_get_fuzzy_file_scoring_function"] == "function"
+        assert k["m_get_fzy_sorter_scoring_function"] == "function"
+
+    def test_a_nested_field_is_contained_by_the_function_it_sits_in(
+            self, luacorpus):
+        # `contains` has to point at a node that exists. A deeper scope cannot
+        # mint its own container from `scope[0]`, so it is told one.
+        root = luacorpus(SORTERS)
+        got, k = links(root, "contains"), kinds(root)
+        assert ("m_get_fuzzy_file", "m_get_fuzzy_file_scoring_function") in got
+        assert all(s in k and t in k for s, t in got)
+
+    def test_a_nested_field_keeps_its_doc_comment(self, luacorpus):
+        assert docs(luacorpus(SORTERS))[
+            "m_get_fuzzy_file_scoring_function#doc"] == "Scores one line."
+
+    def test_a_local_function_inside_a_body_is_a_node(self, luacorpus):
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.factory()
+  local function helper() end
+  return helper()
+end
+'''})
+        assert kinds(root)["m_factory_helper"] == "function"
+        assert ("m_factory", "m_factory_helper") in links(root)
+
+    def test_a_function_bound_to_a_local_inside_a_body_is_a_node(self, luacorpus):
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.wrap()
+  local step = function() end
+end
+'''})
+        assert kinds(root)["m_wrap_step"] == "function"
+
+    def test_the_whole_dotted_target_scopes_a_nested_binding(self, luacorpus):
+        # `defaults.attach_mappings` and `opts.attach_mappings` are eleven lines
+        # apart in one real function. The table each belongs to is the only
+        # thing that tells them apart.
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.apply(opts, defaults)
+  defaults.attach_mappings = function() end
+  opts.attach_mappings = function() end
+end
+'''})
+        k = kinds(root)
+        assert k["m_apply_defaults_attach_mappings"] == "function"
+        assert k["m_apply_opts_attach_mappings"] == "function"
+
+    def test_a_computed_key_names_nothing(self, luacorpus):
+        # `[k] = function() end` puts an identifier where a key goes, but `k`
+        # holds the key rather than being it -- one real file writes three such
+        # fields and naming them after the variable would mint one id.
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.setup()
+  local t = {
+    [key] = function() end,
+    plain = function() end,
+  }
+end
+'''})
+        k = kinds(root)
+        assert "m_setup_key" not in k
+        assert k["m_setup_plain"] == "function"
+
+    def test_an_anonymous_callback_stays_folded_into_its_caller(self, luacorpus):
+        # There is no name for a question to arrive under, so it gets no node
+        # and its calls belong to whatever encloses it.
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.target() end
+function M.wrap()
+  run(function() M.target() end)
+end
+'''})
+        assert set(kinds(root)) == {"m", "m_target", "m_wrap"}
+        assert ("m_wrap", "m_target") in links(root)
+
+    def test_a_call_inside_a_named_nested_function_belongs_to_it(self, luacorpus):
+        # Counting it against the enclosing function too would record one call
+        # once per level of nesting.
+        root = luacorpus({"m.lua": '''
+local M = {}
+function M.target() end
+function M.outer()
+  local function inner() M.target() end
+end
+'''})
+        assert ("m_outer_inner", "m_target") in links(root)
+        assert ("m_outer", "m_target") not in links(root)
+
+    def test_a_closure_in_a_method_shares_that_methods_self(self, luacorpus):
+        root = luacorpus({"m.lua": '''
+local Picker = {}
+function Picker:close() end
+function Picker:find()
+  local on_done = function() self:close() end
+end
+'''})
+        assert ("m_picker_find_on_done", "m_picker_close") in links(root)
+
+    def test_a_nested_function_with_its_own_self_does_not_inherit_the_class(
+            self, luacorpus):
+        # `local function helper(self)` names its own parameter, of a type
+        # nothing here states. Inheriting the enclosing class would put a
+        # confident edge on a guess.
+        root = luacorpus({"m.lua": '''
+local Picker = {}
+function Picker:close() end
+function Picker:find()
+  local function helper(self) self:close() end
+end
+'''})
+        assert ("m_picker_find_helper", "m_picker_close") not in links(root)
+
+    def test_a_table_inside_a_call_is_scoped_by_the_name_it_was_bound_to(
+            self, luacorpus):
+        # The table is an argument, so it is not the value the name is bound to
+        # and the dissolve rule does not reach it. One real file binds three of
+        # these and every one has a field called `command`.
+        root = luacorpus({"m.lua": '''
+local M = {}
+M.track = make_action { command = function(name) end }
+M.delete = make_action { command = function(name) end }
+'''})
+        k = kinds(root)
+        assert k["m_track_command"] == "function"
+        assert k["m_delete_command"] == "function"
+
+    def test_a_top_level_do_block_is_a_scope_not_a_container(self, luacorpus):
+        # `do ... end` keeps a few locals out of the module's namespace. The
+        # function inside carries the name it would carry outside, and one real
+        # file wraps three of its public generators in one such block.
+        root = luacorpus({"m.lua": '''
+local M = {}
+do
+  local lookup = {}
+  function M.gen_from_string(opts) end
+end
+'''})
+        k = kinds(root)
+        assert k["m_gen_from_string"] == "function"
+        assert ("m", "m_gen_from_string") in links(root, "contains")
+
+    def test_a_table_inside_a_table_keeps_the_field_names_on_the_way_down(
+            self, luacorpus):
+        root = luacorpus({"m.lua": '''
+local M = {}
+M.task = {
+  git = { run = function() end },
+}
+'''})
+        assert kinds(root)["m_task_git_run"] == "function"
+
+
 class TestResolution:
     def test_a_call_on_self_resolves_exactly(self, luacorpus):
         assert ("m_picker_new", "m_picker_reset") in links(luacorpus(PICKER))

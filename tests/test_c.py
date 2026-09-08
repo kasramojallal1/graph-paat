@@ -5,11 +5,12 @@ A struct, union or enum is a `class` node and every function is a `function`
 node, and the tests below exist to prove that the flattest possible language
 still produces the same five shapes as Python does.
 
-Three of them guard bugs that were in this module and are easy to write again:
+Four of them guard bugs that were in this module and are easy to write again:
 a function returning a pointer whose NAME came out as its return type, a
-`typedef CURLcode Curl_cft_connect(...)` whose name came out as `CURLcode`, and
-a header whose whole contents were invisible because they sit inside an include
-guard.
+`typedef CURLcode Curl_cft_connect(...)` whose name came out as `CURLcode`, a
+header whose whole contents were invisible because they sit inside an include
+guard, and a `.c` file that arrived in the graph empty because one preprocessor
+conditional made the grammar give up on the rest of it.
 
 `.h` is claimed by C++ as well when both grammars are installed, so every test
 of header parsing calls this module directly instead of going through the
@@ -252,6 +253,114 @@ int sign(void) { return 2; }
 #endif
 ''')
         assert [n.line for n in parsed.nodes if n.kind == "function"] == [2]
+
+
+class TestWhenTheGrammarGivesUp:
+    """A `#ifdef` that opens a brace in one arm and closes it in another.
+
+    It is legal C, because the preprocessor runs first and only one arm is ever
+    compiled, and it is not syntax any grammar can parse. tree-sitter answers by
+    collapsing everything after the break into one ERROR node -- so a module
+    that reads only well-formed children reads the whole file as empty.
+
+    curl's `cf-haproxy.c` is the case: `else {` at line 78 inside `#ifdef
+    USE_UNIX_SOCKETS`, its `}` at line 100 inside a second one, and the file
+    arriving in the graph as nothing but its own file node. Five of curl's `.c`
+    files were empty this way, `http.c` and its 98 functions among them.
+
+    The sources below are small enough to read and produce the same two tree
+    shapes: an unbalanced brace behind a conditional, and everything after it
+    swept into a recovery node.
+    """
+
+    def test_declarations_survive_a_failed_parse(self):
+        # `connect_it` is not even a direct child of the recovery node -- it is
+        # inside a conditional inside it, which is exactly where cf-haproxy's
+        # last five functions ended up. Reading only the top of the wreckage
+        # would find `destroy_it` and lose it.
+        parsed = read('''void ctx_free(void) { }
+#ifdef USE_UNIX_SOCKETS
+if(1) {
+#endif
+#ifdef USE_IPV6
+void connect_it(void) { }
+#endif
+void destroy_it(void) { }
+''')
+        assert [(n.label, n.line) for n in parsed.nodes if n.kind == "function"] == \
+            [("ctx_free", 1), ("connect_it", 6), ("destroy_it", 8)]
+
+    def test_a_function_whose_header_would_not_assemble_is_still_a_node(self):
+        # The break lands inside `date_out_set`, so the grammar never builds a
+        # function_definition for it: its return type, its declarator and its
+        # `{` lie loose in the wreckage. `vtls/apple.c:81` is this exact shape
+        # and it is the only function that file has.
+        parsed = read('''void ctx_free(void) { }
+#ifdef USE_UNIX_SOCKETS
+if(1) {
+#endif
+CURLcode date_out_set(int x)
+{
+  int r;
+#ifdef USE_IPV6
+  if(x)
+    r = 1;
+  else {
+#endif
+  r = 2;
+#ifdef USE_IPV6
+  }
+#endif
+  return r;
+}
+void destroy_it(void) { }
+''')
+        assert ("date_out_set", 5) in \
+            [(n.label, n.line) for n in parsed.nodes if n.kind == "function"]
+
+    def test_a_prototype_in_the_wreckage_is_still_not_a_node(self):
+        # The rule that a declaration is only a node when it has a body does not
+        # get relaxed inside a recovery node. `void f(void);` ends in a
+        # semicolon and `void f(void) {` does not, which is the whole test --
+        # without it, curl's headers would start minting a second node for every
+        # function they declare.
+        parsed = read('''void ctx_free(void) { }
+#ifdef USE_UNIX_SOCKETS
+if(1) {
+#endif
+CURLcode date_out_set(int x);
+void destroy_it(void) { }
+''')
+        assert [n.label for n in parsed.nodes if n.kind == "function"] == \
+            ["ctx_free", "destroy_it"]
+
+    def test_a_type_in_the_wreckage_is_still_a_class_node(self):
+        # cf-haproxy.c's `struct cf_haproxy_ctx` and its `haproxy_state` enum
+        # were both inside the ERROR and both lost. A type is worth as much as
+        # a function here, and it comes back through the same path.
+        parsed = read('''void ctx_free(void) { }
+#ifdef USE_UNIX_SOCKETS
+if(1) {
+#endif
+struct haproxy_ctx { int state; };
+void destroy_it(void) { }
+''')
+        assert [(n.label, n.line) for n in parsed.nodes if n.kind == "class"] == \
+            [("haproxy_ctx", 5)]
+
+    def test_a_well_formed_file_is_read_the_same_way(self):
+        # The recovery path must be reachable ONLY from a recovery node. If it
+        # ever fired on a clean tree it would hand a function's own locals back
+        # as file-scope declarations.
+        parsed = read('''struct ctx { int state; };
+void go(struct ctx *c)
+{
+  struct helper { int n; } h;
+  h.n = c->state;
+}
+''')
+        assert [(n.kind, n.label) for n in parsed.nodes if n.kind != "file"] == \
+            [("class", "ctx"), ("function", "go")]
 
 
 class TestIncludes:

@@ -152,8 +152,13 @@ class TestSameShapesAsPython:
         # A binding inside a function body is not a module-level symbol.
         # Emitting it unscoped mints an id that collides the moment two
         # functions each keep a local `handler`.
+        #
+        # It IS emitted -- see TestNestedFunctions below -- but never at file
+        # scope. Both halves matter: present, and qualified.
         root = js({"m.js": "function outer() { const inner = () => 1; return inner; }\n"})
-        assert "m_inner" not in kinds(root)
+        k = kinds(root)
+        assert "m_inner" not in k
+        assert k["m_outer_inner"] == "function"
 
     def test_a_jsdoc_block_becomes_a_rationale_node(self, js):
         docs = docs_for(js(SERVER))
@@ -215,6 +220,231 @@ export default class App extends React.Component { render() { return 1; } }
         got = links(js(SERVER), "contains")
         assert ("srv", "srv_server") in got
         assert ("srv_server", "srv_server_start") in got
+
+
+class TestNestedFunctions:
+    """Functions declared inside other functions, which is most of a real
+    adapter file.
+
+    axios settles a request in `done()` declared inside the XHR adapter and
+    measures a body in `getBodyLength`, a const inside the fetch adapter.
+    Neither name appears at the file's top level. Reading only the top level
+    left symbols like these out of the map entirely -- measured 2026-09-08 on
+    two corpora, that one shape was most of the gap between what the files
+    declare and what the graph held.
+    """
+
+    def test_a_nested_function_declaration_is_emitted(self, js):
+        root = js({"m.js": '''function outer() {
+  function done() { return 1; }
+  return done;
+}
+'''})
+        assert kinds(root)["m_outer_done"] == "function"
+
+    def test_a_nested_const_arrow_is_emitted(self, js):
+        # `const getBodyLength = async (body) => ...` inside another function is
+        # how axios writes most of its helpers.
+        root = js({"m.js": '''export default (config) => {
+  const getBodyLength = async (body) => body.size;
+  return getBodyLength;
+};
+'''})
+        assert kinds(root)["m_getbodylength"] == "function"
+
+    def test_two_same_named_helpers_in_one_file_do_not_collide(self, js):
+        # The reason ids carry a scope chain at all. Unqualified, both `done`s
+        # mint one id and the second symbol is destroyed with no error.
+        root = js({"m.js": '''function first() {
+  function done() { return 1; }
+  return done;
+}
+function second() {
+  function done() { return 2; }
+  return done;
+}
+'''})
+        got = ids(root)
+        assert len(got) == len(set(got))
+        k = kinds(root)
+        assert k["m_first_done"] == "function" and k["m_second_done"] == "function"
+
+    def test_the_chain_runs_through_a_class_method(self, js):
+        # Three deep: class, method, helper. Qualifying by the first name in the
+        # chain instead of the last would hang the helper off the class and
+        # skip the method that actually holds it.
+        root = js({"m.js": '''class C {
+  go() {
+    function helper() {}
+    return helper;
+  }
+}
+'''})
+        assert kinds(root)["m_c_go_helper"] == "function"
+        assert ("m_c_go", "m_c_go_helper") in links(root, "contains")
+
+    def test_an_anonymous_callback_adds_no_scope(self, js):
+        # A callback has no name to be called by, so it gets no node and the
+        # walk passes straight through it. `helper` belongs to `outer`.
+        root = js({"m.js": '''function outer() {
+  run(() => {
+    function helper() {}
+    helper();
+  });
+}
+'''})
+        assert kinds(root)["m_outer_helper"] == "function"
+
+    def test_a_named_function_expression_is_a_definition(self, js):
+        # `new Promise(function dispatchXhrRequest(...) {...})` -- authors name
+        # these for the stack trace, and axios's entire XHR adapter lives in
+        # one. Without a node for it the helpers inside would hang off the file
+        # with nothing between them and it.
+        root = js({"m.js": '''function outer() {
+  return make(function dispatch(a) {
+    function deep() {}
+    return deep;
+  });
+}
+'''})
+        k = kinds(root)
+        assert k["m_outer_dispatch"] == "function"
+        assert k["m_outer_dispatch_deep"] == "function"
+
+    def test_an_export_default_expression_is_read(self, js):
+        # `export default isSupported && function (config) {...}` is a whole
+        # axios adapter. Unwrapping finds no declaration in it, so before this
+        # the file arrived with a file node and nothing else.
+        root = js({"m.js": '''const supported = true;
+export default supported && function (config) {
+  function done() {}
+  return done;
+};
+'''})
+        assert kinds(root)["m_done"] == "function"
+
+    def test_a_call_belongs_to_the_innermost_function_around_it(self, js):
+        # Same rule the Python reader uses. Leaving the call on the outer
+        # function would say the outer one calls things it never runs.
+        root = js({"m.js": '''function target() {}
+function outer() {
+  function inner() { target(); }
+  return inner;
+}
+'''})
+        got = links(root)
+        assert ("m_outer_inner", "m_target") in got
+        assert ("m_outer", "m_target") not in got
+
+    def test_a_class_declared_inside_a_function_is_scoped_too(self, js):
+        # A class built by a factory is still a class. Two factories in one
+        # file would otherwise mint the same ids for two different classes.
+        root = js({"m.js": '''function make() {
+  class Inner { go() {} }
+  return Inner;
+}
+'''})
+        k = kinds(root)
+        assert k["m_make_inner"] == "class" and k["m_make_inner_go"] == "method"
+
+    def test_a_nested_generator_is_a_function(self, js):
+        root = js({"m.js": '''function outer() {
+  function* walk() { yield 1; }
+  return walk;
+}
+'''})
+        assert kinds(root)["m_outer_walk"] == "function"
+
+    def test_a_jsdoc_block_above_a_nested_const_documents_it(self, js):
+        # The comment sits above the whole `const ...` statement, not above the
+        # binding inside it, so the doc has to be looked for on the statement.
+        root = js({"m.js": '''function outer() {
+  /**
+   * Length of the body.
+   */
+  const getBodyLength = () => 0;
+  return getBodyLength;
+}
+'''})
+        assert "Length of the body." in docs_for(root)["m_outer_getbodylength#doc"]
+
+    def test_nested_containment_edges_never_dangle(self, js):
+        # More symbols only help if every containment edge still points at a
+        # node that exists.
+        root = js({"m.js": '''class C {
+  go() {
+    const codes = { ok() {} };
+    function helper() { return codes; }
+    return helper;
+  }
+}
+'''})
+        files, _ = parse_corpus_files(root)
+        node_ids = {n.id for p in files for n in p.nodes}
+        for p in files:
+            for edge in p.edges:
+                if edge.relation == "contains":
+                    assert edge.source in node_ids
+
+
+class TestObjectLiterals:
+    """`{ foo() {} }` and `{ foo: function () {} }` -- how JavaScript wrote a
+    namespace before it had modules."""
+
+    def test_both_spellings_of_an_object_method_are_functions(self, js):
+        # Emitted as functions, not methods: nothing here is an instance of a
+        # class, and calling them methods would send the resolver looking for
+        # an owning class that does not exist.
+        root = js({"m.js": '''const codes = {
+  ok() { return 1; },
+  fail: function () { return 0; },
+  limit: 5,
+};
+'''})
+        k = kinds(root)
+        assert k["m_codes_ok"] == "function" and k["m_codes_fail"] == "function"
+        assert "m_codes_limit" not in k        # a constant is not a function
+
+    def test_a_top_level_object_hangs_its_members_off_the_file(self, js):
+        # The object itself gets no node, so the file has to be the container
+        # or the containment edge would point at an id nobody minted.
+        root = js({"m.js": "const codes = { ok() { return 1; } };\n"})
+        assert ("m", "m_codes_ok") in links(root, "contains")
+
+    def test_two_objects_with_a_same_named_member_do_not_collide(self, js):
+        root = js({"m.js": '''const a = { run() {} };
+const b = { run() {} };
+'''})
+        got = ids(root)
+        assert len(got) == len(set(got))
+        assert "m_a_run" in got and "m_b_run" in got
+
+    def test_an_anonymous_object_gets_no_nodes(self, js):
+        # An options bag passed straight to a call has no name to qualify its
+        # members by. Two of them in one function would mint one id per shared
+        # key, and losing one is worse than never emitting either.
+        root = js({"m.js": "function outer() { register({ onLoad() {} }); }\n"})
+        assert "m_outer_onload" not in kinds(root)
+
+    def test_an_object_inside_a_function_carries_the_whole_chain(self, js):
+        root = js({"m.js": '''function outer() {
+  const codes = { ok() {} };
+  return codes;
+}
+'''})
+        assert kinds(root)["m_outer_codes_ok"] == "function"
+        assert ("m_outer", "m_outer_codes_ok") in links(root, "contains")
+
+    def test_a_call_in_a_non_function_member_stays_with_its_writer(self, js):
+        # `{ limit: compute() }` is code the enclosing function runs, not
+        # something the object does.
+        root = js({"m.js": '''function compute() { return 1; }
+function outer() {
+  const opts = { limit: compute(), ok() {} };
+  return opts;
+}
+'''})
+        assert ("m_outer", "m_compute") in links(root)
 
 
 class TestCommonJS:

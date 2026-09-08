@@ -28,6 +28,19 @@ means something beside its file. Ten files in that same corpus are in exactly
 that position, and every one of them is a real object type -- `LazyMeta`,
 `LazyHandler` -- so the label is uninformative rather than wrong.
 
+**A function bound to a named field of a table constructor is a declaration.**
+It is not a side idiom -- it is how the language states what an object does:
+
+    return Sorter:new {
+      scoring_function = function(_, prompt, line) ... end,
+    }
+    return setmetatable({}, { __index = function(t, k) ... end })
+
+Reading only `function M.f()` and `function T:f()` left those out, and one real
+corpus is built almost entirely from them: `sorters.lua` writes eight
+`scoring_function` fields and two `__index` fields and the graph had none of
+them. See `_Reader.fields_in` for what scope they get and what it costs.
+
 Inheritance comes from `setmetatable`, which is the only mechanism the language
 itself offers: `setmetatable({}, {__index = Base})` and `setmetatable({}, Base)`
 both mean the new table gains Base's methods, which is what `inherits` means
@@ -164,6 +177,105 @@ def _decl_name(node):
                   "method_index_expression")
 
 
+def _field_function(field, src: bytes):
+    """`name = function() end` inside a table constructor, as (name, function).
+
+    The key has to be the field's *first* child. `[k] = function() end` puts an
+    identifier there too, but `k` is a variable holding the key rather than the
+    key itself, and one real corpus writes three such fields in a single file
+    (`lazy/view/init.lua`, all keyed `commit_pattern`) -- naming them after the
+    variable would mint one id for the three and lose two. A computed key names
+    nothing we can print, so it is skipped rather than guessed at.
+    """
+    if field.type != "field":
+        return None
+    key = field.children[0] if field.children else None
+    if key is None or key.type != "identifier":
+        return None
+    fn = _named(field, "function_definition")
+    return (_text(key, src), fn) if fn is not None else None
+
+
+def _statement_of(node):
+    """The statement a node sits in, which is where its doc comment lives."""
+    while node.parent is not None and node.parent.type != "block":
+        node = node.parent
+    return node
+
+
+def _bound_path(fn, src: bytes) -> list[str] | None:
+    """The name a `function ... end` value was assigned, if it was assigned one.
+
+        local wrapped_fn = function(...) end   -> ["wrapped_fn"]
+        opts.attach_mappings = function(...)   -> ["opts", "attach_mappings"]
+        cb(function() end)                     -> None
+
+    Lua pairs a list of targets with a list of values, so the name is the target
+    at this value's own position -- `local ok, run = nil, function() end` names
+    the function `run`, not `ok`.
+
+    The whole dotted target is kept, not just its last segment. `builtin/init.lua`
+    sets `defaults.attach_mappings` and `opts.attach_mappings` eleven lines
+    apart inside one function, and the table each belongs to is the only thing
+    that tells them apart.
+    """
+    holder = fn.parent
+    if holder is None or holder.type != "expression_list":
+        return None
+    assign = holder.parent
+    if assign is None or assign.type != "assignment_statement":
+        return None
+    values = _values(holder)
+    index = next((i for i, v in enumerate(values)
+                  if v.start_byte == fn.start_byte), None)
+    targets = _values(_named(assign, "variable_list"))
+    if index is None or index >= len(targets):
+        return None
+    return _path(targets[index], src)
+
+
+def _named_function(node, src: bytes):
+    """`(name path, where the doc comment is, the function node)`, or None.
+
+    One predicate for the three ways a function inside a body gets a name, so
+    that emission and call attribution can never disagree about what counts:
+
+        local function overlapping_ngrams(s, n)   a nested declaration
+        local wrapped_fn = function(...)          a nested binding
+        scoring_function = function(...)          a table field
+
+    Anything it returns None for is anonymous -- a callback handed straight to
+    another function -- and stays folded into whatever encloses it, because
+    there is no name to answer a question with.
+    """
+    if node.type == "field":
+        found = _field_function(node, src)
+        return ([found[0]], node, found[1]) if found is not None else None
+    if node.type == "function_declaration":
+        name_node = _decl_name(node)
+        path = _path(name_node, src) if name_node is not None else None
+        return (path, node, node) if path else None
+    if node.type == "function_definition":
+        path = _bound_path(node, src)
+        return (path, _statement_of(node), node) if path else None
+    return None
+
+
+def _declares_self(fn, src: bytes) -> bool:
+    """Does this function take its own `self`, rather than closing over one?
+
+    A closure written inside a method shares that method's `self`, so a
+    `self:foo()` inside it resolves against the same class. `local function
+    get_bufnr(self)` does not -- it names its own parameter, of a type nothing
+    here states -- and inheriting the enclosing class there would put a
+    confident edge on a guess.
+    """
+    for param in _values(_named(fn, "parameters")):
+        if param.type == "identifier" and _text(param, src) == "self":
+            return True
+    return False
+
+
 # --------------------------------------------------------------------------
 # doc comments
 # --------------------------------------------------------------------------
@@ -280,6 +392,30 @@ def _annotated_types(node, src: bytes) -> dict[str, str]:
 # pass one: which tables are types
 # --------------------------------------------------------------------------
 
+def _top_level(root):
+    """Every top-level statement, stepping through `do ... end`.
+
+    A bare `do ... end` at the top of a file is Lua's way of keeping a few
+    locals out of the module's namespace; it is a scope, not a container of a
+    different kind, and a function declared inside it carries exactly the name
+    it would carry outside. `make_entry.lua` wraps three of its public
+    generators in one, and treating the block as opaque hid all three.
+
+    Source order is preserved, because the artifact has to be the same on every
+    run.
+    """
+    out, stack = [], list(reversed(root.children))
+    while stack:
+        node = stack.pop()
+        if node.type == "do_statement":
+            block = _named(node, "block")
+            if block is not None:
+                stack.extend(reversed(block.children))
+            continue
+        out.append(node)
+    return out
+
+
 class _Survey:
     """Which top-level names are bound, and which of them own functions.
 
@@ -294,7 +430,7 @@ class _Survey:
         self.colon: set[str] = set()           # names with a `T:method()`
         self.nested: set[str] = set()          # names reached through a table
 
-        for stmt in root.children:
+        for stmt in _top_level(root):
             for target, value in _pairs(stmt, src):
                 path = _path(target, src)
                 if path and path[-1] not in self.bindings:
@@ -344,12 +480,18 @@ class _Reader:
         self.survey = survey
 
     def emit(self, name: str, kind: str, node, doc_node=None, scope=None,
-             bases=None) -> str:
+             bases=None, container=None) -> str:
         nid = mint(self.p.prefix, name, scope or [])
         line = node.start_point[0] + 1
         self.p.nodes.append(Node(id=nid, label=name, kind=kind, file=self.p.path,
                                  line=line, bases=bases))
-        container = mint(self.p.prefix, scope[0]) if scope else self.p.prefix
+        # A scope of one class name mints its own container; anything deeper
+        # has to be told, because `scope[0]` is then the outermost enclosing
+        # function and the thing that actually contains this one is the
+        # innermost. Guessing would point `contains` at a node that is not
+        # there.
+        if container is None:
+            container = mint(self.p.prefix, scope[0]) if scope else self.p.prefix
         self.p.edges.append(Edge(source=container, target=nid, relation="contains",
                                  file=self.p.path, line=line))
         doc = _doc_above(doc_node if doc_node is not None else node, self.src)
@@ -382,13 +524,73 @@ class _Reader:
             # The table dissolved into the file, so the member keeps its own
             # name: `utils.flatten` in utils.lua is the function `flatten`.
             label, owner = path[-1], None
+            scope = []
             nid = self.emit(label, "function", decl, doc_node=doc_node)
             qualified = label
         self.types_in(doc_node if doc_node is not None else decl, qualified)
+        has_self = is_method or owner is not None
         if body is not None:
             self.local_types(body, qualified)
-            self.calls_in(body, nid, is_method or owner is not None)
+            self.calls_in(body, nid, has_self)
+            self.nested_in(body, scope + [label], nid, qualified, owner, has_self)
         return nid
+
+    def nested_in(self, node, chain: list[str], container: str, qualified: str,
+                  owner: str | None, has_self: bool) -> None:
+        """Every function the source names below `node`, however it named it.
+
+        Most of Lua's behaviour is written this way once a file gets past the
+        module-table stage. `Sorter:new { scoring_function = ... }` declares a
+        function as plainly as `function M.f()` does -- the table it sits in is
+        an argument to a call, so no assignment target ever names it -- and
+        `local function overlapping_ngrams(s, n)` inside a factory is a real
+        function that other lines in the same factory call by name. Reading
+        only the top level left both out: telescope's `sorters.lua` writes
+        eight `scoring_function` fields and two `overlapping_ngrams` helpers
+        and the graph had none of the ten.
+
+        **The scope is the chain of enclosing named functions.** The names
+        repeat hard at this depth -- those eight fields are all called
+        `scoring_function`, and the file alone as scope would mint one id for
+        the eight and drop seven. The function each one sits in is what tells
+        them apart, so the id reads `sorters.get_fuzzy_file.scoring_function`.
+
+        The cost is a longer id, and for something nested three deep, one that
+        names every closure on the way down. That is the trade `mint` already
+        makes for nested functions: verbose beats invisible, and beats a
+        collision that silently keeps one of eight.
+
+        Kind is `function`, not `method`. `Sorter:new {...}` plainly builds a
+        Sorter, but `new` is a name a library chose rather than a rule of Lua --
+        the same reason `_bases` refuses to read `Base:extend()`.
+        """
+        stack = [node]
+        while stack:
+            n = stack.pop()
+            found = _named_function(n, self.src)
+            if found is None:
+                stack.extend(n.children)
+                continue
+            # Its body is walked below with the deeper scope, so it is not
+            # pushed here -- doing both would emit everything inside it twice.
+            path, decl, fn = found
+            label, here = path[-1], chain + path[:-1]
+            nid = self.emit(label, "function", decl, doc_node=decl, scope=here,
+                            container=container)
+            # A closure written inside a method shares that method's `self`;
+            # one that declares its own does not. See `_declares_self`.
+            mine = None if _declares_self(fn, self.src) else owner
+            if mine is not None:
+                self.p.owner_of[nid] = mine
+            dotted = ".".join(path)
+            inner = f"{qualified}.{dotted}" if qualified else dotted
+            self.types_in(decl, inner)
+            body = _named(fn, "block")
+            if body is not None:
+                self.local_types(body, inner)
+                self.calls_in(body, nid, has_self and mine == owner)
+                self.nested_in(body, here + [label], nid, inner, mine,
+                               has_self and mine == owner)
 
     def types_in(self, doc_node, scope: str) -> None:
         """`---@param picker Picker` types the parameter it names."""
@@ -421,6 +623,11 @@ class _Reader:
         stack = [body]
         while stack:
             node = stack.pop()
+            # A function the source names has a node of its own, and its calls
+            # belong to it. The same predicate decides both, so the two can
+            # never disagree and count a call once per enclosing function.
+            if node is not body and _named_function(node, self.src) is not None:
+                continue
             if node.type == "function_call":
                 self._call(node, caller, has_self)
             stack.extend(node.children)
@@ -587,7 +794,7 @@ def parse(source: str, parsed: ParsedFile) -> bool:
         # source, not inferred from a constructor's return value.
         parsed.var_types[f"{parsed.prefix}::{name}"] = name
 
-    for stmt in root.children:
+    for stmt in _top_level(root):
         if stmt.type == "function_declaration":
             _declaration(stmt, src, reader)
         elif _assignment(stmt) is not None:
@@ -621,12 +828,42 @@ def _bound_functions(stmt, src: bytes, reader: _Reader) -> None:
             reader.function(path, _named(value, "block"), stmt, stmt,
                             is_method=False)
         elif value.type == "table_constructor":
+            rest = []
             for field in value.children:
-                if field.type != "field":
+                found = _field_function(field, src)
+                if found is None:
+                    rest.append(field)
                     continue
-                key = _named(field, "identifier")
-                fn = _named(field, "function_definition")
-                if key is None or fn is None:
-                    continue
-                reader.function(path + [_text(key, src)], _named(fn, "block"),
+                key, fn = found
+                reader.function(path + [key], _named(fn, "block"),
                                 field, field, is_method=False)
+            # A field that is itself a table keeps going: `M = { git = { run =
+            # function() end } }` declares `run`, and the field names on the way
+            # down are what keep it apart from the next table's `run`.
+            for field in rest:
+                key = field.children[0] if field.children else None
+                deeper = [_text(key, src)] if key is not None \
+                    and key.type == "identifier" else []
+                _fields_under(field, path[-1], deeper, reader)
+        else:
+            # `actions.git_track_branch = make_git_branch_action { command = ... }`
+            # -- the table is an argument to a call, so it is not the value the
+            # name is bound to and the dissolve rule above does not apply to it.
+            # The bound name is the only thing in the source that names what the
+            # call builds, and it is load-bearing: `actions/init.lua` binds three
+            # of these and every one of them has a field called `command`.
+            _fields_under(value, path[-1], [], reader)
+
+
+def _fields_under(node, name: str, deeper: list[str], reader: _Reader) -> None:
+    """Named functions inside a top-level binding, below its own value.
+
+    The bound name always opens the scope, because at this depth the field name
+    alone is not distinctive and the file already holds several of these.
+    """
+    chain = [name] + deeper
+    container = mint(reader.p.prefix, name) if name in reader.survey.classes \
+        else reader.p.prefix
+    owner = name if name in reader.survey.classes else None
+    reader.nested_in(node, chain, container, name, owner,
+                     has_self=owner is not None)

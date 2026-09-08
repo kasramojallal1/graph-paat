@@ -2,25 +2,25 @@
  "dangling_edges": 0,
  "edges_by_relation": {
   "calls": 17290,
-  "contains": 10974,
+  "contains": 10975,
   "imports": 4289,
   "inherits": 1783,
   "rationale_for": 3871
  },
- "edges_total": 38207,
+ "edges_total": 38208,
  "edges_unresolved": 12954,
  "files_failed": 0,
  "files_parsed": 966,
  "id_collisions": 54,
- "ids_unique": 15755,
+ "ids_unique": 15756,
  "nodes_by_kind": {
   "class": 1912,
   "file": 966,
-  "function": 1459,
+  "function": 1460,
   "method": 7603,
   "rationale": 3871
  },
- "nodes_total": 15811,
+ "nodes_total": 15812,
  "refusals_by_reason": {
   "base class outside this corpus": 281,
   "called on self, but no such method on the class": 1301,
@@ -87,7 +87,7 @@
   "unique in corpus": 892
  },
  "shape": {
-  "groups": 85,
+  "groups": 80,
   "ungrouped": 319
  }
 }

@@ -15,388 +15,1737 @@
  ],
  "questions": {
   "requests": [
-   {"q": "how do I send a get request",
-    "answers": ["api.py:get"],
-    "why": "api.py defines the module-level verbs; get() at L62 is the one people call"},
-   {"q": "what class holds the response body",
-    "answers": ["models.py:Response"],
-    "why": "models.py:L640, the object every request returns"},
-   {"q": "how is a redirect followed",
-    "answers": ["sessions.py:resolve_redirects"],
-    "why": "SessionRedirectMixin.resolve_redirects at sessions.py:L159 walks the chain"},
-   {"q": "where are cookies kept between requests",
-    "answers": ["cookies.py:RequestsCookieJar"],
-    "why": "cookies.py:L176, the jar a Session carries"},
-   {"q": "how does basic authentication work",
-    "answers": ["auth.py:HTTPBasicAuth"],
-    "why": "auth.py:L76 builds the Authorization header"},
-   {"q": "how are connections pooled and reused",
-    "answers": ["adapters.py:HTTPAdapter"],
-    "why": "adapters.py:L167 owns the urllib3 pool manager"},
-   {"q": "what raises an exception for a bad status code",
-    "answers": ["models.py:raise_for_status"],
-    "why": "Response.raise_for_status at models.py:L999"},
-   {"q": "how is the character encoding of a response decided",
-    "answers": ["utils.py:get_encoding_from_headers"],
-    "why": "utils.py:L529 reads the content-type header and returns the charset"},
-   {"q": "how is a proxy chosen for a url",
-    "answers": ["utils.py:select_proxy"],
-    "why": "utils.py:L828 picks from the proxies dict by scheme and host"},
-   {"q": "what makes header lookups case insensitive",
-    "answers": ["structures.py:CaseInsensitiveDict"],
-    "why": "structures.py:L13, the dict every headers attribute uses"}
+   {
+    "q": "how do I send a get request",
+    "answers": [
+     "api.py:get"
+    ],
+    "why": "api.py defines the module-level verbs; get() at L62 is the one people call"
+   },
+   {
+    "q": "what class holds the response body",
+    "answers": [
+     "models.py:Response"
+    ],
+    "why": "models.py:L640, the object every request returns"
+   },
+   {
+    "q": "how is a redirect followed",
+    "answers": [
+     "sessions.py:resolve_redirects"
+    ],
+    "why": "SessionRedirectMixin.resolve_redirects at sessions.py:L159 walks the chain"
+   },
+   {
+    "q": "where are cookies kept between requests",
+    "answers": [
+     "cookies.py:RequestsCookieJar"
+    ],
+    "why": "cookies.py:L176, the jar a Session carries"
+   },
+   {
+    "q": "how does basic authentication work",
+    "answers": [
+     "auth.py:HTTPBasicAuth"
+    ],
+    "why": "auth.py:L76 builds the Authorization header"
+   },
+   {
+    "q": "how are connections pooled and reused",
+    "answers": [
+     "adapters.py:HTTPAdapter"
+    ],
+    "why": "adapters.py:L167 owns the urllib3 pool manager"
+   },
+   {
+    "q": "what raises an exception for a bad status code",
+    "answers": [
+     "models.py:raise_for_status"
+    ],
+    "why": "Response.raise_for_status at models.py:L999"
+   },
+   {
+    "q": "how is the character encoding of a response decided",
+    "answers": [
+     "utils.py:get_encoding_from_headers"
+    ],
+    "why": "utils.py:L529 reads the content-type header and returns the charset"
+   },
+   {
+    "q": "how is a proxy chosen for a url",
+    "answers": [
+     "utils.py:select_proxy"
+    ],
+    "why": "utils.py:L828 picks from the proxies dict by scheme and host"
+   },
+   {
+    "q": "what makes header lookups case insensitive",
+    "answers": [
+     "structures.py:CaseInsensitiveDict"
+    ],
+    "why": "structures.py:L13, the dict every headers attribute uses"
+   }
   ],
   "rich": [
-   {"q": "what is the main object you print with",
-    "answers": ["console.py:Console"],
-    "why": "console.py:L593; every renderable goes through it"},
-   {"q": "how is a table drawn",
-    "answers": ["table.py:Table"],
-    "why": "table.py:L154"},
-   {"q": "how do I show a progress bar",
-    "answers": ["progress.py:Progress"],
-    "why": "progress.py:L1063 is the class; track() at L108 wraps it"},
-   {"q": "how is markdown displayed",
-    "answers": ["markdown.py:Markdown"],
-    "why": "markdown.py:L503, the renderable that parses and prints markdown"},
-   {"q": "how is source code highlighted",
-    "answers": ["syntax.py:Syntax"],
-    "why": "syntax.py:L227 wraps pygments"},
-   {"q": "how is a traceback formatted",
-    "answers": ["traceback.py:Traceback"],
-    "why": "traceback.py:L214; install() at L47 hooks it into sys.excepthook"},
-   {"q": "what draws a box around content",
-    "answers": ["panel.py:Panel"],
-    "why": "panel.py:L17, the only class in the file"},
-   {"q": "how are colours and styles named",
-    "answers": ["theme.py:Theme"],
-    "why": "theme.py:L8 maps style names to styles"},
-   {"q": "how does output update in place",
-    "answers": ["live.py:Live"],
-    "why": "live.py:L35 redraws a region on a refresh thread"},
-   {"q": "how is styled text stored",
-    "answers": ["text.py:Text"],
-    "why": "text.py:L118; Span at L47 is the range it holds"}
+   {
+    "q": "what is the main object you print with",
+    "answers": [
+     "console.py:Console"
+    ],
+    "why": "console.py:L593; every renderable goes through it"
+   },
+   {
+    "q": "how is a table drawn",
+    "answers": [
+     "table.py:Table"
+    ],
+    "why": "table.py:L154"
+   },
+   {
+    "q": "how do I show a progress bar",
+    "answers": [
+     "progress.py:Progress"
+    ],
+    "why": "progress.py:L1063 is the class; track() at L108 wraps it"
+   },
+   {
+    "q": "how is markdown displayed",
+    "answers": [
+     "markdown.py:Markdown"
+    ],
+    "why": "markdown.py:L503, the renderable that parses and prints markdown"
+   },
+   {
+    "q": "how is source code highlighted",
+    "answers": [
+     "syntax.py:Syntax"
+    ],
+    "why": "syntax.py:L227 wraps pygments"
+   },
+   {
+    "q": "how is a traceback formatted",
+    "answers": [
+     "traceback.py:Traceback"
+    ],
+    "why": "traceback.py:L214; install() at L47 hooks it into sys.excepthook"
+   },
+   {
+    "q": "what draws a box around content",
+    "answers": [
+     "panel.py:Panel"
+    ],
+    "why": "panel.py:L17, the only class in the file"
+   },
+   {
+    "q": "how are colours and styles named",
+    "answers": [
+     "theme.py:Theme"
+    ],
+    "why": "theme.py:L8 maps style names to styles"
+   },
+   {
+    "q": "how does output update in place",
+    "answers": [
+     "live.py:Live"
+    ],
+    "why": "live.py:L35 redraws a region on a refresh thread"
+   },
+   {
+    "q": "how is styled text stored",
+    "answers": [
+     "text.py:Text"
+    ],
+    "why": "text.py:L118; Span at L47 is the range it holds"
+   }
   ],
   "pydantic": [
-   {"q": "what is the base class for a model",
-    "answers": ["main.py:BaseModel"],
-    "why": "main.py:L121"},
-   {"q": "how is a field declared",
-    "answers": ["fields.py:FieldInfo"],
-    "why": "fields.py:L99 holds everything about one field; Field() at L796 constructs it"},
-   {"q": "how do I configure a model",
-    "answers": ["config.py:ConfigDict"],
-    "why": "config.py:L36, the typed dict every model_config is"},
-   {"q": "how is a json schema produced",
-    "answers": ["json_schema.py:GenerateJsonSchema"],
-    "why": "json_schema.py:L216 does the generation; model_json_schema() at L2379 is the entry"},
-   {"q": "how do I validate a type that is not a model",
-    "answers": ["type_adapter.py:TypeAdapter"],
-    "why": "type_adapter.py:L69, the documented way to validate a bare type"},
-   {"q": "how are dataclasses supported",
-    "answers": ["dataclasses.py:dataclass"],
-    "why": "dataclasses.py:L98 is the decorator"},
-   {"q": "how is a model built at runtime",
-    "answers": ["main.py:create_model"],
-    "why": "main.py:L1650; three overloads, all in main.py"},
-   {"q": "what is a private attribute on a model",
-    "answers": ["fields.py:ModelPrivateAttr"],
-    "why": "fields.py:L1162"},
-   {"q": "how is data validated against a model",
-    "answers": ["main.py:model_validate"],
-    "why": "BaseModel.model_validate at main.py:L670"},
-   {"q": "what error is raised when the library is used wrongly",
-    "answers": ["errors.py:PydanticUserError"],
-    "why": "errors.py:L101. ValidationError is not here -- it comes from pydantic_core, a compiled extension, which is itself worth knowing"}
+   {
+    "q": "what is the base class for a model",
+    "answers": [
+     "main.py:BaseModel"
+    ],
+    "why": "main.py:L121"
+   },
+   {
+    "q": "how is a field declared",
+    "answers": [
+     "fields.py:FieldInfo"
+    ],
+    "why": "fields.py:L99 holds everything about one field; Field() at L796 constructs it"
+   },
+   {
+    "q": "how do I configure a model",
+    "answers": [
+     "config.py:ConfigDict"
+    ],
+    "why": "config.py:L36, the typed dict every model_config is"
+   },
+   {
+    "q": "how is a json schema produced",
+    "answers": [
+     "json_schema.py:GenerateJsonSchema"
+    ],
+    "why": "json_schema.py:L216 does the generation; model_json_schema() at L2379 is the entry"
+   },
+   {
+    "q": "how do I validate a type that is not a model",
+    "answers": [
+     "type_adapter.py:TypeAdapter"
+    ],
+    "why": "type_adapter.py:L69, the documented way to validate a bare type"
+   },
+   {
+    "q": "how are dataclasses supported",
+    "answers": [
+     "dataclasses.py:dataclass"
+    ],
+    "why": "dataclasses.py:L98 is the decorator"
+   },
+   {
+    "q": "how is a model built at runtime",
+    "answers": [
+     "main.py:create_model"
+    ],
+    "why": "main.py:L1650; three overloads, all in main.py"
+   },
+   {
+    "q": "what is a private attribute on a model",
+    "answers": [
+     "fields.py:ModelPrivateAttr"
+    ],
+    "why": "fields.py:L1162"
+   },
+   {
+    "q": "how is data validated against a model",
+    "answers": [
+     "main.py:model_validate"
+    ],
+    "why": "BaseModel.model_validate at main.py:L670"
+   },
+   {
+    "q": "what error is raised when the library is used wrongly",
+    "answers": [
+     "errors.py:PydanticUserError"
+    ],
+    "why": "errors.py:L101. ValidationError is not here -- it comes from pydantic_core, a compiled extension, which is itself worth knowing"
+   }
   ],
   "django": [
-   {"q": "how are database rows queried",
-    "answers": ["db/models/query.py:QuerySet"],
-    "why": "db/models/query.py:L293"},
-   {"q": "what is the base class for a database model",
-    "answers": ["db/models/base.py:Model"],
-    "why": "db/models/base.py:L459"},
-   {"q": "how is a form field defined",
-    "answers": ["forms/fields.py:Field"],
-    "why": "forms/fields.py:L86. Three classes named Field exist -- db, forms, gis -- and the question says which"},
-   {"q": "how is an http response built",
-    "answers": ["http/response.py:HttpResponse"],
-    "why": "http/response.py:L364"},
-   {"q": "how is a template rendered",
-    "answers": ["template/base.py:Template"],
-    "why": "template/base.py:L138 is the engine's own Template; the backends wrap it"},
-   {"q": "how does cross site request forgery protection work",
-    "answers": ["middleware/csrf.py:CsrfViewMiddleware"],
-    "why": "middleware/csrf.py:L165"},
-   {"q": "how is a user authenticated",
-    "answers": ["contrib/auth/__init__.py:authenticate"],
-    "why": "contrib/auth/__init__.py:L66 walks the auth backends"},
-   {"q": "how are migrations applied to the database",
-    "answers": ["db/migrations/executor.py:MigrationExecutor"],
-    "why": "db/migrations/executor.py:L10"},
-   {"q": "how does caching work",
-    "answers": ["core/cache/backends/base.py:BaseCache"],
-    "why": "core/cache/backends/base.py:L57 defines the interface every backend implements"},
-   {"q": "how is the admin interface configured for a model",
-    "answers": ["contrib/admin/options.py:ModelAdmin"],
-    "why": "contrib/admin/options.py:L643"}
+   {
+    "q": "how are database rows queried",
+    "answers": [
+     "db/models/query.py:QuerySet"
+    ],
+    "why": "db/models/query.py:L293"
+   },
+   {
+    "q": "what is the base class for a database model",
+    "answers": [
+     "db/models/base.py:Model"
+    ],
+    "why": "db/models/base.py:L459"
+   },
+   {
+    "q": "how is a form field defined",
+    "answers": [
+     "forms/fields.py:Field"
+    ],
+    "why": "forms/fields.py:L86. Three classes named Field exist -- db, forms, gis -- and the question says which"
+   },
+   {
+    "q": "how is an http response built",
+    "answers": [
+     "http/response.py:HttpResponse"
+    ],
+    "why": "http/response.py:L364"
+   },
+   {
+    "q": "how is a template rendered",
+    "answers": [
+     "template/base.py:Template"
+    ],
+    "why": "template/base.py:L138 is the engine's own Template; the backends wrap it"
+   },
+   {
+    "q": "how does cross site request forgery protection work",
+    "answers": [
+     "middleware/csrf.py:CsrfViewMiddleware"
+    ],
+    "why": "middleware/csrf.py:L165"
+   },
+   {
+    "q": "how is a user authenticated",
+    "answers": [
+     "contrib/auth/__init__.py:authenticate"
+    ],
+    "why": "contrib/auth/__init__.py:L66 walks the auth backends"
+   },
+   {
+    "q": "how are migrations applied to the database",
+    "answers": [
+     "db/migrations/executor.py:MigrationExecutor"
+    ],
+    "why": "db/migrations/executor.py:L10"
+   },
+   {
+    "q": "how does caching work",
+    "answers": [
+     "core/cache/backends/base.py:BaseCache"
+    ],
+    "why": "core/cache/backends/base.py:L57 defines the interface every backend implements"
+   },
+   {
+    "q": "how is the admin interface configured for a model",
+    "answers": [
+     "contrib/admin/options.py:ModelAdmin"
+    ],
+    "why": "contrib/admin/options.py:L643"
+   }
   ],
   "numpy": [
-   {"q": "how is an array saved to a file",
-    "answers": ["lib/npyio.py:save"],
-    "why": "lib/npyio.py:L476"},
-   {"q": "how is a text file read into an array",
-    "answers": ["lib/npyio.py:loadtxt"],
-    "why": "lib/npyio.py:L1100; genfromtxt at L1744 is the tolerant version"},
-   {"q": "how is a system of linear equations solved",
-    "answers": ["linalg/linalg.py:solve"],
-    "why": "linalg/linalg.py:L330. array_api/linalg.py also defines solve, but it is the array-API shim, not the implementation"},
-   {"q": "how is a matrix inverted",
-    "answers": ["linalg/linalg.py:inv"],
-    "why": "linalg/linalg.py:L493"},
-   {"q": "how is a fast fourier transform computed",
-    "answers": ["fft/_pocketfft.py:fft"],
-    "why": "fft/_pocketfft.py:L123"},
-   {"q": "how is a histogram computed",
-    "answers": ["lib/histograms.py:histogram"],
-    "why": "lib/histograms.py:L679"},
-   {"q": "what holds an array with missing values",
-    "answers": ["ma/core.py:MaskedArray"],
-    "why": "ma/core.py:L2697"},
-   {"q": "how do I fit a polynomial to data",
-    "answers": ["lib/polynomial.py:polyfit"],
-    "why": "lib/polynomial.py:L454 is the classic API; polynomial/polynomial.py:L1214 is the newer one"},
-   {"q": "how is einstein summation done",
-    "answers": ["core/einsumfunc.py:einsum"],
-    "why": "core/einsumfunc.py:L1010"},
-   {"q": "how is an array memory mapped from disk",
-    "answers": ["core/memmap.py:memmap"],
-    "why": "core/memmap.py:L23"}
+   {
+    "q": "how is an array saved to a file",
+    "answers": [
+     "lib/npyio.py:save"
+    ],
+    "why": "lib/npyio.py:L476"
+   },
+   {
+    "q": "how is a text file read into an array",
+    "answers": [
+     "lib/npyio.py:loadtxt"
+    ],
+    "why": "lib/npyio.py:L1100; genfromtxt at L1744 is the tolerant version"
+   },
+   {
+    "q": "how is a system of linear equations solved",
+    "answers": [
+     "linalg/linalg.py:solve"
+    ],
+    "why": "linalg/linalg.py:L330. array_api/linalg.py also defines solve, but it is the array-API shim, not the implementation"
+   },
+   {
+    "q": "how is a matrix inverted",
+    "answers": [
+     "linalg/linalg.py:inv"
+    ],
+    "why": "linalg/linalg.py:L493"
+   },
+   {
+    "q": "how is a fast fourier transform computed",
+    "answers": [
+     "fft/_pocketfft.py:fft"
+    ],
+    "why": "fft/_pocketfft.py:L123"
+   },
+   {
+    "q": "how is a histogram computed",
+    "answers": [
+     "lib/histograms.py:histogram"
+    ],
+    "why": "lib/histograms.py:L679"
+   },
+   {
+    "q": "what holds an array with missing values",
+    "answers": [
+     "ma/core.py:MaskedArray"
+    ],
+    "why": "ma/core.py:L2697"
+   },
+   {
+    "q": "how do I fit a polynomial to data",
+    "answers": [
+     "lib/polynomial.py:polyfit"
+    ],
+    "why": "lib/polynomial.py:L454 is the classic API; polynomial/polynomial.py:L1214 is the newer one"
+   },
+   {
+    "q": "how is einstein summation done",
+    "answers": [
+     "core/einsumfunc.py:einsum"
+    ],
+    "why": "core/einsumfunc.py:L1010"
+   },
+   {
+    "q": "how is an array memory mapped from disk",
+    "answers": [
+     "core/memmap.py:memmap"
+    ],
+    "why": "core/memmap.py:L23"
+   }
   ],
   "torch": [
-   {"q": "what is the base class for a neural network layer",
-    "answers": ["nn/modules/module.py:Module"],
-    "why": "nn/modules/module.py:L392. jit/annotations.py also defines a Module, which is a type stub"},
-   {"q": "how is a fully connected layer implemented",
-    "answers": ["nn/modules/linear.py:Linear"],
-    "why": "nn/modules/linear.py:L50. Eight classes are named Linear; the rest are quantised or sparse variants under ao/"},
-   {"q": "how is a two dimensional convolution implemented",
-    "answers": ["nn/modules/conv.py:Conv2d"],
-    "why": "nn/modules/conv.py:L378; the ao/ copies are quantised variants"},
-   {"q": "how does the adam optimizer work",
-    "answers": ["optim/adam.py:Adam"],
-    "why": "optim/adam.py:L33"},
-   {"q": "how are batches loaded during training",
-    "answers": ["utils/data/dataloader.py:DataLoader"],
-    "why": "utils/data/dataloader.py:L131"},
-   {"q": "how is cross entropy loss computed",
-    "answers": ["nn/modules/loss.py:CrossEntropyLoss"],
-    "why": "nn/modules/loss.py:L1146"},
-   {"q": "how is a model saved to disk",
-    "answers": ["serialization.py:save"],
-    "why": "serialization.py:L908. Dozens of methods are named save; this is torch.save"},
-   {"q": "how does distributed data parallel training work",
-    "answers": ["nn/parallel/distributed.py:DistributedDataParallel"],
-    "why": "nn/parallel/distributed.py:L326"},
-   {"q": "what marks a tensor as a learnable parameter",
-    "answers": ["nn/parameter.py:Parameter"],
-    "why": "nn/parameter.py:L19"},
-   {"q": "how are layers chained one after another",
-    "answers": ["nn/modules/container.py:Sequential"],
-    "why": "nn/modules/container.py:L54"}
+   {
+    "q": "what is the base class for a neural network layer",
+    "answers": [
+     "nn/modules/module.py:Module"
+    ],
+    "why": "nn/modules/module.py:L392. jit/annotations.py also defines a Module, which is a type stub"
+   },
+   {
+    "q": "how is a fully connected layer implemented",
+    "answers": [
+     "nn/modules/linear.py:Linear"
+    ],
+    "why": "nn/modules/linear.py:L50. Eight classes are named Linear; the rest are quantised or sparse variants under ao/"
+   },
+   {
+    "q": "how is a two dimensional convolution implemented",
+    "answers": [
+     "nn/modules/conv.py:Conv2d"
+    ],
+    "why": "nn/modules/conv.py:L378; the ao/ copies are quantised variants"
+   },
+   {
+    "q": "how does the adam optimizer work",
+    "answers": [
+     "optim/adam.py:Adam"
+    ],
+    "why": "optim/adam.py:L33"
+   },
+   {
+    "q": "how are batches loaded during training",
+    "answers": [
+     "utils/data/dataloader.py:DataLoader"
+    ],
+    "why": "utils/data/dataloader.py:L131"
+   },
+   {
+    "q": "how is cross entropy loss computed",
+    "answers": [
+     "nn/modules/loss.py:CrossEntropyLoss"
+    ],
+    "why": "nn/modules/loss.py:L1146"
+   },
+   {
+    "q": "how is a model saved to disk",
+    "answers": [
+     "serialization.py:save"
+    ],
+    "why": "serialization.py:L908. Dozens of methods are named save; this is torch.save"
+   },
+   {
+    "q": "how does distributed data parallel training work",
+    "answers": [
+     "nn/parallel/distributed.py:DistributedDataParallel"
+    ],
+    "why": "nn/parallel/distributed.py:L326"
+   },
+   {
+    "q": "what marks a tensor as a learnable parameter",
+    "answers": [
+     "nn/parameter.py:Parameter"
+    ],
+    "why": "nn/parameter.py:L19"
+   },
+   {
+    "q": "how are layers chained one after another",
+    "answers": [
+     "nn/modules/container.py:Sequential"
+    ],
+    "why": "nn/modules/container.py:L54"
+   }
   ],
   "go-uuid": [
-   {"q": "how is a random uuid generated",
-    "answers": ["version4.go:New"],
-    "why": "version4.go:L13; New is the documented entry point and returns a v4"},
-   {"q": "how is a uuid parsed from a string",
-    "answers": ["uuid.go:Parse"],
-    "why": "uuid.go:L68"},
-   {"q": "how is a uuid printed as text",
-    "answers": ["uuid.go:String"],
-    "why": "UUID.String at uuid.go:L244"},
-   {"q": "how is a time ordered uuid made",
-    "answers": ["version7.go:NewV7"],
-    "why": "version7.go:L23; v7 is the time-ordered version"},
-   {"q": "how is a uuid derived from a name and a hash",
-    "answers": ["hash.go:NewHash"],
-    "why": "hash.go:L33; NewMD5 and NewSHA1 both call it"},
-   {"q": "how does a uuid work as a nullable database column",
-    "answers": ["null.go:NullUUID"],
-    "why": "null.go:L29, with Scan and Value beneath it"},
-   {"q": "how is a uuid encoded for json",
-    "answers": ["marshal.go:MarshalText"],
-    "why": "UUID.MarshalText at marshal.go:L10; encoding/json uses it"},
-   {"q": "how is the hardware address of the machine found",
-    "answers": ["node.go:NodeInterface", "node_net.go:getHardwareInterface"],
-    "why": "node.go:L21 exposes it; node_net.go:L19 does the lookup, and node_js.go is the build-tagged stub"},
-   {"q": "which version of the spec does a uuid follow",
-    "answers": ["uuid.go:Version"],
-    "why": "UUID.Version at uuid.go:L286"},
-   {"q": "how is a uuid made from the current time and the mac address",
-    "answers": ["version1.go:NewUUID"],
-    "why": "version1.go:L19"}
+   {
+    "q": "how is a random uuid generated",
+    "answers": [
+     "version4.go:New"
+    ],
+    "why": "version4.go:L13; New is the documented entry point and returns a v4"
+   },
+   {
+    "q": "how is a uuid parsed from a string",
+    "answers": [
+     "uuid.go:Parse"
+    ],
+    "why": "uuid.go:L68"
+   },
+   {
+    "q": "how is a uuid printed as text",
+    "answers": [
+     "uuid.go:String"
+    ],
+    "why": "UUID.String at uuid.go:L244"
+   },
+   {
+    "q": "how is a time ordered uuid made",
+    "answers": [
+     "version7.go:NewV7"
+    ],
+    "why": "version7.go:L23; v7 is the time-ordered version"
+   },
+   {
+    "q": "how is a uuid derived from a name and a hash",
+    "answers": [
+     "hash.go:NewHash"
+    ],
+    "why": "hash.go:L33; NewMD5 and NewSHA1 both call it"
+   },
+   {
+    "q": "how does a uuid work as a nullable database column",
+    "answers": [
+     "null.go:NullUUID"
+    ],
+    "why": "null.go:L29, with Scan and Value beneath it"
+   },
+   {
+    "q": "how is a uuid encoded for json",
+    "answers": [
+     "marshal.go:MarshalText"
+    ],
+    "why": "UUID.MarshalText at marshal.go:L10; encoding/json uses it"
+   },
+   {
+    "q": "how is the hardware address of the machine found",
+    "answers": [
+     "node.go:NodeInterface",
+     "node_net.go:getHardwareInterface"
+    ],
+    "why": "node.go:L21 exposes it; node_net.go:L19 does the lookup, and node_js.go is the build-tagged stub"
+   },
+   {
+    "q": "which version of the spec does a uuid follow",
+    "answers": [
+     "uuid.go:Version"
+    ],
+    "why": "UUID.Version at uuid.go:L286"
+   },
+   {
+    "q": "how is a uuid made from the current time and the mac address",
+    "answers": [
+     "version1.go:NewUUID"
+    ],
+    "why": "version1.go:L19"
+   }
   ],
   "go-logrus": [
-   {"q": "what is the main logger object",
-    "answers": ["logger.go:Logger"],
-    "why": "logger.go:L17"},
-   {"q": "what carries the fields of a single log record",
-    "answers": ["entry.go:Entry"],
-    "why": "entry.go:L44"},
-   {"q": "how is output formatted as json",
-    "answers": ["json_formatter.go:JSONFormatter"],
-    "why": "json_formatter.go:L24"},
-   {"q": "how is output formatted as plain text",
-    "answers": ["text_formatter.go:TextFormatter"],
-    "why": "text_formatter.go:L30"},
-   {"q": "how are hooks fired when something is logged",
-    "answers": ["hooks.go:Fire"],
-    "why": "LevelHooks.Fire at hooks.go:L26 runs every hook for a level"},
-   {"q": "how is the minimum level to log set",
-    "answers": ["logger.go:SetLevel"],
-    "why": "Logger.SetLevel at logger.go:L362; exported.go:L35 is the package-level wrapper"},
-   {"q": "what interface does a formatter implement",
-    "answers": ["formatter.go:Formatter"],
-    "why": "formatter.go:L26"},
-   {"q": "how is a new logger created",
-    "answers": ["logger.go:New"],
-    "why": "logger.go:L87"},
-   {"q": "how are logs sent to syslog",
-    "answers": ["hooks/syslog/syslog.go:SyslogHook"],
-    "why": "hooks/syslog/syslog.go:L14"},
-   {"q": "how are log lines written to another io writer",
-    "answers": ["hooks/writer/writer.go:Hook"],
-    "why": "hooks/writer/writer.go:L10. A second type named Hook lives in hooks.go and is the interface"}
+   {
+    "q": "what is the main logger object",
+    "answers": [
+     "logger.go:Logger"
+    ],
+    "why": "logger.go:L17"
+   },
+   {
+    "q": "what carries the fields of a single log record",
+    "answers": [
+     "entry.go:Entry"
+    ],
+    "why": "entry.go:L44"
+   },
+   {
+    "q": "how is output formatted as json",
+    "answers": [
+     "json_formatter.go:JSONFormatter"
+    ],
+    "why": "json_formatter.go:L24"
+   },
+   {
+    "q": "how is output formatted as plain text",
+    "answers": [
+     "text_formatter.go:TextFormatter"
+    ],
+    "why": "text_formatter.go:L30"
+   },
+   {
+    "q": "how are hooks fired when something is logged",
+    "answers": [
+     "hooks.go:Fire"
+    ],
+    "why": "LevelHooks.Fire at hooks.go:L26 runs every hook for a level"
+   },
+   {
+    "q": "how is the minimum level to log set",
+    "answers": [
+     "logger.go:SetLevel"
+    ],
+    "why": "Logger.SetLevel at logger.go:L362; exported.go:L35 is the package-level wrapper"
+   },
+   {
+    "q": "what interface does a formatter implement",
+    "answers": [
+     "formatter.go:Formatter"
+    ],
+    "why": "formatter.go:L26"
+   },
+   {
+    "q": "how is a new logger created",
+    "answers": [
+     "logger.go:New"
+    ],
+    "why": "logger.go:L87"
+   },
+   {
+    "q": "how are logs sent to syslog",
+    "answers": [
+     "hooks/syslog/syslog.go:SyslogHook"
+    ],
+    "why": "hooks/syslog/syslog.go:L14"
+   },
+   {
+    "q": "how are log lines written to another io writer",
+    "answers": [
+     "hooks/writer/writer.go:Hook"
+    ],
+    "why": "hooks/writer/writer.go:L10. A second type named Hook lives in hooks.go and is the interface"
+   }
   ],
   "go-grpc": [
-   {"q": "what serves grpc requests",
-    "answers": ["server.go:Server"],
-    "why": "server.go:L126. Server also appears in health/, reflection/ and generated .pb.go files"},
-   {"q": "how is a new server created",
-    "answers": ["server.go:NewServer"],
-    "why": "server.go:L687"},
-   {"q": "how does a client connect to a server",
-    "answers": ["clientconn.go:NewClient"],
-    "why": "clientconn.go:L183; Dial at L263 is the deprecated older form"},
-   {"q": "how is a service registered on the server",
-    "answers": ["server.go:RegisterService"],
-    "why": "Server.RegisterService at server.go:L753"},
-   {"q": "how does the server start accepting connections",
-    "answers": ["server.go:Serve"],
-    "why": "Server.Serve at server.go:L871"},
-   {"q": "what represents the client side connection",
-    "answers": ["clientconn.go:ClientConn"],
-    "why": "clientconn.go:L667. balancer/ and resolver/ each define a different ClientConn interface"},
-   {"q": "how is a single unary call invoked",
-    "answers": ["call.go:Invoke"],
-    "why": "call.go:L59, with ClientConn.Invoke at L29"},
-   {"q": "how is transport security set when dialing",
-    "answers": ["dialoptions.go:WithTransportCredentials"],
-    "why": "dialoptions.go:L425"},
-   {"q": "what chooses which backend a call goes to",
-    "answers": ["balancer/balancer.go:Picker"],
-    "why": "balancer/balancer.go:L313"},
-   {"q": "what turns a target name into addresses",
-    "answers": ["resolver/resolver.go:Resolver"],
-    "why": "resolver/resolver.go:L318"}
+   {
+    "q": "what serves grpc requests",
+    "answers": [
+     "server.go:Server"
+    ],
+    "why": "server.go:L126. Server also appears in health/, reflection/ and generated .pb.go files"
+   },
+   {
+    "q": "how is a new server created",
+    "answers": [
+     "server.go:NewServer"
+    ],
+    "why": "server.go:L687"
+   },
+   {
+    "q": "how does a client connect to a server",
+    "answers": [
+     "clientconn.go:NewClient"
+    ],
+    "why": "clientconn.go:L183; Dial at L263 is the deprecated older form"
+   },
+   {
+    "q": "how is a service registered on the server",
+    "answers": [
+     "server.go:RegisterService"
+    ],
+    "why": "Server.RegisterService at server.go:L753"
+   },
+   {
+    "q": "how does the server start accepting connections",
+    "answers": [
+     "server.go:Serve"
+    ],
+    "why": "Server.Serve at server.go:L871"
+   },
+   {
+    "q": "what represents the client side connection",
+    "answers": [
+     "clientconn.go:ClientConn"
+    ],
+    "why": "clientconn.go:L667. balancer/ and resolver/ each define a different ClientConn interface"
+   },
+   {
+    "q": "how is a single unary call invoked",
+    "answers": [
+     "call.go:Invoke"
+    ],
+    "why": "call.go:L59, with ClientConn.Invoke at L29"
+   },
+   {
+    "q": "how is transport security set when dialing",
+    "answers": [
+     "dialoptions.go:WithTransportCredentials"
+    ],
+    "why": "dialoptions.go:L425"
+   },
+   {
+    "q": "what chooses which backend a call goes to",
+    "answers": [
+     "balancer/balancer.go:Picker"
+    ],
+    "why": "balancer/balancer.go:L313"
+   },
+   {
+    "q": "what turns a target name into addresses",
+    "answers": [
+     "resolver/resolver.go:Resolver"
+    ],
+    "why": "resolver/resolver.go:L318"
+   }
   ],
   "ts-redux": [
-   {"q": "how is the store created",
-    "answers": ["createStore.ts:createStore"],
-    "why": "createStore.ts:L87"},
-   {"q": "how are reducers combined into one",
-    "answers": ["combineReducers.ts:combineReducers"],
-    "why": "combineReducers.ts:L123"},
-   {"q": "how is middleware applied",
-    "answers": ["applyMiddleware.ts:applyMiddleware"],
-    "why": "applyMiddleware.ts:L53"},
-   {"q": "how are functions composed together",
-    "answers": ["compose.ts:compose"],
-    "why": "compose.ts:L46"},
-   {"q": "how are action creators bound to dispatch",
-    "answers": ["bindActionCreators.ts:bindActionCreators"],
-    "why": "bindActionCreators.ts:L54"},
-   {"q": "what is the shape of an action",
-    "answers": ["types/actions.ts:Action"],
-    "why": "types/actions.ts:L19"},
-   {"q": "what is a middleware",
-    "answers": ["types/middleware.ts:Middleware"],
-    "why": "types/middleware.ts:L22"},
-   {"q": "how is the shape of a reducer checked",
-    "answers": ["combineReducers.ts:assertReducerShape"],
-    "why": "combineReducers.ts:L62"},
-   {"q": "what warns about an unexpected state shape",
-    "answers": ["combineReducers.ts:getUnexpectedStateShapeWarningMessage"],
-    "why": "combineReducers.ts:L14"},
-   {"q": "what is the deprecated way to create a store",
-    "answers": ["createStore.ts:legacy_createStore"],
-    "why": "createStore.ts:L478"}
+   {
+    "q": "how is the store created",
+    "answers": [
+     "createStore.ts:createStore"
+    ],
+    "why": "createStore.ts:L87"
+   },
+   {
+    "q": "how are reducers combined into one",
+    "answers": [
+     "combineReducers.ts:combineReducers"
+    ],
+    "why": "combineReducers.ts:L123"
+   },
+   {
+    "q": "how is middleware applied",
+    "answers": [
+     "applyMiddleware.ts:applyMiddleware"
+    ],
+    "why": "applyMiddleware.ts:L53"
+   },
+   {
+    "q": "how are functions composed together",
+    "answers": [
+     "compose.ts:compose"
+    ],
+    "why": "compose.ts:L46"
+   },
+   {
+    "q": "how are action creators bound to dispatch",
+    "answers": [
+     "bindActionCreators.ts:bindActionCreators"
+    ],
+    "why": "bindActionCreators.ts:L54"
+   },
+   {
+    "q": "what is the shape of an action",
+    "answers": [
+     "types/actions.ts:Action"
+    ],
+    "why": "types/actions.ts:L19"
+   },
+   {
+    "q": "what is a middleware",
+    "answers": [
+     "types/middleware.ts:Middleware"
+    ],
+    "why": "types/middleware.ts:L22"
+   },
+   {
+    "q": "how is the shape of a reducer checked",
+    "answers": [
+     "combineReducers.ts:assertReducerShape"
+    ],
+    "why": "combineReducers.ts:L62"
+   },
+   {
+    "q": "what warns about an unexpected state shape",
+    "answers": [
+     "combineReducers.ts:getUnexpectedStateShapeWarningMessage"
+    ],
+    "why": "combineReducers.ts:L14"
+   },
+   {
+    "q": "what is the deprecated way to create a store",
+    "answers": [
+     "createStore.ts:legacy_createStore"
+    ],
+    "why": "createStore.ts:L478"
+   }
   ],
   "ts-zod": [
-   {"q": "what is the base class for a schema",
-    "answers": ["v4/classic/schemas.ts:ZodType"],
-    "why": "v4/classic/schemas.ts:L33"},
-   {"q": "how is a string schema defined",
-    "answers": ["v4/classic/schemas.ts:ZodString", "v3/types.ts:ZodString"],
-    "why": "the corpus ships v3 and v4 side by side; both are the real definition for their major version"},
-   {"q": "how is an object schema defined",
-    "answers": ["v4/classic/schemas.ts:ZodObject", "v3/types.ts:ZodObject"],
-    "why": "same v3/v4 split"},
-   {"q": "how is an array schema defined",
-    "answers": ["v4/classic/schemas.ts:ZodArray", "v3/types.ts:ZodArray"],
-    "why": "same v3/v4 split"},
-   {"q": "how are validation errors represented",
-    "answers": ["v4/classic/errors.ts:ZodError", "v3/ZodError.ts:ZodError"],
-    "why": "same v3/v4 split"},
-   {"q": "how is an error turned into a nested tree",
-    "answers": ["v4/core/errors.ts:treeifyError"],
-    "why": "v4/core/errors.ts:L426"},
-   {"q": "how is an error printed for a human to read",
-    "answers": ["v4/core/errors.ts:prettifyError"],
-    "why": "v4/core/errors.ts:L533"},
-   {"q": "how is a json schema generated from a schema",
-    "answers": ["v4/core/json-schema-processors.ts:toJSONSchema"],
-    "why": "v4/core/json-schema-processors.ts:L782"},
-   {"q": "how are error messages translated to another language",
-    "answers": ["v4/locales/en.ts:error"],
-    "why": "v4/locales/en.ts:L5 is the English locale every other locale mirrors"},
-   {"q": "what is a validation check on a value",
-    "answers": ["v4/core/checks.ts:$ZodCheck"],
-    "why": "v4/core/checks.ts:L28, the base every check extends"}
+   {
+    "q": "what is the base class for a schema",
+    "answers": [
+     "v4/classic/schemas.ts:ZodType"
+    ],
+    "why": "v4/classic/schemas.ts:L33"
+   },
+   {
+    "q": "how is a string schema defined",
+    "answers": [
+     "v4/classic/schemas.ts:ZodString",
+     "v3/types.ts:ZodString"
+    ],
+    "why": "the corpus ships v3 and v4 side by side; both are the real definition for their major version"
+   },
+   {
+    "q": "how is an object schema defined",
+    "answers": [
+     "v4/classic/schemas.ts:ZodObject",
+     "v3/types.ts:ZodObject"
+    ],
+    "why": "same v3/v4 split"
+   },
+   {
+    "q": "how is an array schema defined",
+    "answers": [
+     "v4/classic/schemas.ts:ZodArray",
+     "v3/types.ts:ZodArray"
+    ],
+    "why": "same v3/v4 split"
+   },
+   {
+    "q": "how are validation errors represented",
+    "answers": [
+     "v4/classic/errors.ts:ZodError",
+     "v3/ZodError.ts:ZodError"
+    ],
+    "why": "same v3/v4 split"
+   },
+   {
+    "q": "how is an error turned into a nested tree",
+    "answers": [
+     "v4/core/errors.ts:treeifyError"
+    ],
+    "why": "v4/core/errors.ts:L426"
+   },
+   {
+    "q": "how is an error printed for a human to read",
+    "answers": [
+     "v4/core/errors.ts:prettifyError"
+    ],
+    "why": "v4/core/errors.ts:L533"
+   },
+   {
+    "q": "how is a json schema generated from a schema",
+    "answers": [
+     "v4/core/json-schema-processors.ts:toJSONSchema"
+    ],
+    "why": "v4/core/json-schema-processors.ts:L782"
+   },
+   {
+    "q": "how are error messages translated to another language",
+    "answers": [
+     "v4/locales/en.ts:error"
+    ],
+    "why": "v4/locales/en.ts:L5 is the English locale every other locale mirrors"
+   },
+   {
+    "q": "what is a validation check on a value",
+    "answers": [
+     "v4/core/checks.ts:$ZodCheck"
+    ],
+    "why": "v4/core/checks.ts:L28, the base every check extends"
+   }
   ],
   "ts-rxjs": [
-   {"q": "what is an observable",
-    "answers": ["internal/Observable.ts:Observable"],
-    "why": "internal/Observable.ts:L19"},
-   {"q": "what is a subject",
-    "answers": ["internal/Subject.ts:Subject"],
-    "why": "internal/Subject.ts:L28"},
-   {"q": "what holds the latest value and gives it to new subscribers",
-    "answers": ["internal/BehaviorSubject.ts:BehaviorSubject"],
-    "why": "internal/BehaviorSubject.ts:L13"},
-   {"q": "how is a subscription torn down",
-    "answers": ["internal/Subscription.ts:Subscription"],
-    "why": "internal/Subscription.ts:L19"},
-   {"q": "how are emitted values transformed",
-    "answers": ["internal/operators/map.ts:map"],
-    "why": "internal/operators/map.ts:L45"},
-   {"q": "how are emitted values filtered",
-    "answers": ["internal/operators/filter.ts:filter"],
-    "why": "internal/operators/filter.ts:L58"},
-   {"q": "how is an inner observable flattened into the outer one",
-    "answers": ["internal/operators/mergeMap.ts:mergeMap"],
-    "why": "internal/operators/mergeMap.ts:L72"},
-   {"q": "how is the previous inner observable cancelled when a new value arrives",
-    "answers": ["internal/operators/switchMap.ts:switchMap"],
-    "why": "internal/operators/switchMap.ts:L80"},
-   {"q": "how is an observable made from an array or a promise",
-    "answers": ["internal/observable/from.ts:from"],
-    "why": "internal/observable/from.ts:L109"},
-   {"q": "how is work scheduled to run later",
-    "answers": ["internal/Scheduler.ts:Scheduler"],
-    "why": "internal/Scheduler.ts:L24"}
+   {
+    "q": "what is an observable",
+    "answers": [
+     "internal/Observable.ts:Observable"
+    ],
+    "why": "internal/Observable.ts:L19"
+   },
+   {
+    "q": "what is a subject",
+    "answers": [
+     "internal/Subject.ts:Subject"
+    ],
+    "why": "internal/Subject.ts:L28"
+   },
+   {
+    "q": "what holds the latest value and gives it to new subscribers",
+    "answers": [
+     "internal/BehaviorSubject.ts:BehaviorSubject"
+    ],
+    "why": "internal/BehaviorSubject.ts:L13"
+   },
+   {
+    "q": "how is a subscription torn down",
+    "answers": [
+     "internal/Subscription.ts:Subscription"
+    ],
+    "why": "internal/Subscription.ts:L19"
+   },
+   {
+    "q": "how are emitted values transformed",
+    "answers": [
+     "internal/operators/map.ts:map"
+    ],
+    "why": "internal/operators/map.ts:L45"
+   },
+   {
+    "q": "how are emitted values filtered",
+    "answers": [
+     "internal/operators/filter.ts:filter"
+    ],
+    "why": "internal/operators/filter.ts:L58"
+   },
+   {
+    "q": "how is an inner observable flattened into the outer one",
+    "answers": [
+     "internal/operators/mergeMap.ts:mergeMap"
+    ],
+    "why": "internal/operators/mergeMap.ts:L72"
+   },
+   {
+    "q": "how is the previous inner observable cancelled when a new value arrives",
+    "answers": [
+     "internal/operators/switchMap.ts:switchMap"
+    ],
+    "why": "internal/operators/switchMap.ts:L80"
+   },
+   {
+    "q": "how is an observable made from an array or a promise",
+    "answers": [
+     "internal/observable/from.ts:from"
+    ],
+    "why": "internal/observable/from.ts:L109"
+   },
+   {
+    "q": "how is work scheduled to run later",
+    "answers": [
+     "internal/Scheduler.ts:Scheduler"
+    ],
+    "why": "internal/Scheduler.ts:L24"
+   }
+  ],
+  "bash-bats": [
+   {
+    "q": "how does it notice when the plan promises twenty results but only nineteen arrive",
+    "answers": [
+     "lib/bats-core/validator.bash:bats_test_count_validator"
+    ],
+    "why": "validator.bash:L12 pulls the expected count out of the TAP plan header, L17-27 counts the ok/not ok lines, and L29-32 errors when the two disagree"
+   },
+   {
+    "q": "how are parallel jobs kept from exceeding the allowed number at once",
+    "answers": [
+     "lib/bats-core/semaphore.bash:bats_semaphore_acquire_slot"
+    ],
+    "why": "semaphore.bash:L85-101 comment says 'block until a semaphore slot becomes free'; it busy-waits on bats_semaphore_get_free_slot_count before a job may start"
+   },
+   {
+    "q": "where does it look for a helper library on the search path",
+    "answers": [
+     "lib/bats-core/test_functions.bash:find_in_bats_lib_path"
+    ],
+    "why": "test_functions.bash:L26 splits BATS_LIB_PATH on colons, L29-36 probes each entry for the file or its load.bash"
+   },
+   {
+    "q": "how does it compare two release numbers to see which one is older",
+    "answers": [
+     "lib/bats-core/common.bash:bats_version_lt"
+    ],
+    "why": "common.bash:L33 comment 'compares two versions. Return 0 when version1 < version2'; L38-39 splits on dots, L42-48 compares major/minor/patch"
+   },
+   {
+    "q": "how do I run a command and capture what it printed",
+    "answers": [
+     "lib/bats-core/test_functions.bash:run"
+    ],
+    "why": "test_functions.bash:L310 is the run helper; L400 assigns status and L403 fills output/lines via bats_separate_lines"
+   },
+   {
+    "q": "how can I chain commands together and still get a single exit code",
+    "answers": [
+     "lib/bats-core/test_functions.bash:bats_pipe"
+    ],
+    "why": "test_functions.bash:L189-199 documents piping each command in turn and returning the last failure like set -o pipefail, with -N to pick a position"
+   },
+   {
+    "q": "how is the chain of calls leading to a failure shown to the user",
+    "answers": [
+     "lib/bats-core/tracing.bash:bats_print_stack_trace"
+    ],
+    "why": "tracing.bash:L44-84 walks each captured frame and prints 'from function X in file Y', ending with 'in test file'"
+   },
+   {
+    "q": "how is the root folder for reporting file names worked out",
+    "answers": [
+     "lib/bats-core/formatter.bash:normalize_base_path"
+    ],
+    "why": "formatter.bash:L137-138 comment 'the relative path root to use for reporting filenames'; L141-149 takes the dirname when given a file, makes it absolute, appends a slash"
+   },
+   {
+    "q": "how does a test skip itself when a prerequisite is missing",
+    "answers": [
+     "lib/bats-core/test_functions.bash:skip"
+    ],
+    "why": "test_functions.bash:L461 defines skip; L477-480 sets BATS_TEST_SKIPPED to the reason and BATS_TEST_COMPLETED, then exits 0"
+   },
+   {
+    "q": "how are warnings about deprecated usage written out",
+    "answers": [
+     "lib/bats-core/warnings.bash:bats_generate_warning"
+    ],
+    "why": "warnings.bash:L16-23 formats BW<number> from BATS_WARNING_SHORT_DESCS, attaches a stack trace, and appends to BATS_WARNING_FILE"
+   }
+  ],
+  "c-redis": [
+   {
+    "q": "what actually runs a command and keeps track of how long it took",
+    "answers": [
+     "server.c:call"
+    ],
+    "why": "server.c:L4083 is the command execution core; it measures with ustime() at L4181 and pushes the timing into the slow log at L4222"
+   },
+   {
+    "q": "how are entries moved into the bigger bucket array a little at a time",
+    "answers": [
+     "dict.c:dictRehash"
+    ],
+    "why": "dict.c:L406, comment at L396 says it performs N steps of incremental rehashing, moving one bucket at a time from the old table to the new"
+   },
+   {
+    "q": "how does the append command behave when the key does not exist yet",
+    "answers": [
+     "t_string.c:appendCommand"
+    ],
+    "why": "t_string.c:L1364; the NULL branch at L1371 creates the key from argv[2] via dbAddByLink instead of concatenating"
+   },
+   {
+    "q": "how do you leave a placeholder for a count you cannot know until later",
+    "answers": [
+     "networking.c:addReplyDeferredLen"
+    ],
+    "why": "networking.c:L961, comment at L959 says it adds an empty object to the reply list to hold a multi bulk length that is not known when the function is called"
+   },
+   {
+    "q": "how is a value's encoding turned into a name you can print",
+    "answers": [
+     "object.c:strEncoding"
+    ],
+    "why": "object.c:L1302 is the switch mapping OBJ_ENCODING_* constants to strings such as \"raw\", \"int\", \"quicklist\""
+   },
+   {
+    "q": "how does a master decide that a partial resync is possible",
+    "answers": [
+     "replication.c:masterTryPartialResynchronization"
+    ],
+    "why": "replication.c:L1006, comment at L1001 says it handles PSYNC from the master's side; the replid comparison at L1018 is where it decides, and C_ERR falls back to a full resync"
+   },
+   {
+    "q": "what frees up keys once the memory ceiling has been reached",
+    "answers": [
+     "evict.c:performEvictions"
+    ],
+    "why": "evict.c:L532; L543 checks getMaxmemoryState and returns EVICT_OK when memory is fine, L551 returns EVICT_FAIL under MAXMEMORY_NO_EVICTION"
+   },
+   {
+    "q": "how are keys that already timed out swept away in the background",
+    "answers": [
+     "expire.c:activeExpireCycle"
+    ],
+    "why": "expire.c:L295, the active sweep whose work per run is scaled by server.active_expire_effort at L299"
+   },
+   {
+    "q": "how does a background save child get forked off",
+    "answers": [
+     "rdb.c:rdbSaveBackground"
+    ],
+    "why": "rdb.c:L2223; redisFork(CHILD_TYPE_RDB) at L2232 and the child calls rdbSave at L2238"
+   },
+   {
+    "q": "what handles a read from a client socket",
+    "answers": [
+     "networking.c:readQueryFromClient"
+    ],
+    "why": "networking.c:L3981 is the connection read handler; it takes the client off the connection at L3982 and fills the query buffer"
+   }
+  ],
+  "cpp-fmt": [
+   {
+    "q": "how does a chosen style turn into the bytes a terminal understands",
+    "answers": [
+     "fmt/color.h:ansi_color_escape"
+    ],
+    "why": "fmt/color.h:L366 constructor writes \\x1b[38;2; then three-digit rgb via to_esc; a second ctor at L399 builds the emphasis codes"
+   },
+   {
+    "q": "how can bold and underline be combined into a single value",
+    "answers": [
+     "fmt/color.h:text_style"
+    ],
+    "why": "fmt/color.h:L236 packs foreground, background and emphases into one uint64_t; operator|= at L292 ORs two of them"
+   },
+   {
+    "q": "what catches a bad placeholder before the program is even run",
+    "answers": [
+     "fmt/core.h:format_string_checker"
+    ],
+    "why": "fmt/core.h:L1692; on_arg_id calls context_.check_arg_id (L1717) and on_error calls report_error (L1753), which is a compile error in a constexpr context"
+   },
+   {
+    "q": "what starts out using space on the stack and only allocates once that fills up",
+    "answers": [
+     "fmt/format.h:basic_memory_buffer"
+    ],
+    "why": "fmt/format.h:L937; member T store_[SIZE] at L939 is the inline storage, and grow() at L950 allocates 1.5x through the allocator when it overflows"
+   },
+   {
+    "q": "where does it decide to put a comma every three places in a large number",
+    "answers": [
+     "fmt/format.h:digit_grouping"
+    ],
+    "why": "fmt/format.h:L2090; next() walks the locale grouping string and apply() at L2131 copies thousands_sep_ in at each computed position"
+   },
+   {
+    "q": "how does it know a Chinese character takes up two columns on screen",
+    "answers": [
+     "fmt/format.h:display_width_of"
+    ],
+    "why": "fmt/format.h:L820 binary-searches wide_cp_data ranges (L660) and returns 2 for a code point inside one, else 1"
+   },
+   {
+    "q": "what emits each part of a calendar time such as the month name and the hour",
+    "answers": [
+     "fmt/chrono.h:tm_writer"
+    ],
+    "why": "fmt/chrono.h:L1044 holds a const std::tm& and writes fields; on_full_month at L1252 writes tm_mon_full_name, on_abbr_weekday at L1221"
+   },
+   {
+    "q": "how does a duration get written with its fractional seconds",
+    "answers": [
+     "fmt/chrono.h:duration_formatter"
+    ],
+    "why": "fmt/chrono.h:L1612; it holds int precision at L1620 and calls write_fractional_seconds at L1787. Shares the word duration with the label, deliberately"
+   },
+   {
+    "q": "what keeps ownership of arguments added at run time so their addresses never move",
+    "answers": [
+     "fmt/args.h:dynamic_arg_list"
+    ],
+    "why": "fmt/args.h:L43; push() at L58 heap-allocates a typed_node and links it into head_, so nothing relocates. The comment at L102 states that requirement"
+   },
+   {
+    "q": "what puts the surrounding quotes on a string and escapes what is inside",
+    "answers": [
+     "fmt/format.h:write_escaped_string"
+    ],
+    "why": "fmt/format.h:L2037 writes a double quote, loops on find_escape, then writes the closing quote. write_escaped_char at L2053 is the single-quote sibling for one character"
+   }
+  ],
+  "cs-serilog": [
+   {
+    "q": "how does it back off when the server it writes to keeps refusing",
+    "answers": [
+     "Core/Sinks/Batching/FailureAwareBatchScheduler.cs:FailureAwareBatchScheduler"
+    ],
+    "why": "Core/Sinks/Batching/FailureAwareBatchScheduler.cs:L86 NextInterval grows the wait after each failure, clamped by MinimumBackoffPeriod at L30 and MaximumBackoffInterval at L31; MarkFailure at L65 decides when to drop the batch or the whole queue."
+   },
+   {
+    "q": "what stops an object graph from being walked all the way down",
+    "answers": [
+     "Capturing/DepthLimiter.cs:DepthLimiter"
+    ],
+    "why": "Capturing/DepthLimiter.cs:L62 DefaultIfMaximumDepth returns ScalarValue.Null once the thread-static counter reaches the configured maximum, and writes 'Maximum destructuring depth reached.' at L66."
+   },
+   {
+    "q": "where do the short severity abbreviations like INF and WRN come from",
+    "answers": [
+     "Formatting/Display/LevelOutputFormat.cs:LevelOutputFormat"
+    ],
+    "why": "Formatting/Display/LevelOutputFormat.cs:L45 _upperCaseLevelMap literally contains \"INF\" and \"WRN\"; GetLevelMoniker at L55 picks the row by level and the column by the width in the format string."
+   },
+   {
+    "q": "is the same format string reparsed on every call",
+    "answers": [
+     "Core/Pipeline/MessageTemplateCache.cs:MessageTemplateCache"
+    ],
+    "why": "Core/Pipeline/MessageTemplateCache.cs:L40 Parse looks the string up in a Hashtable first and only calls the inner parser on a miss; the cache is cleared at 1000 entries (L65)."
+   },
+   {
+    "q": "how can one namespace be made noisier than the rest of the app",
+    "answers": [
+     "Core/LevelOverrideMap.cs:LevelOverrideMap"
+    ],
+    "why": "Core/LevelOverrideMap.cs:L60 GetEffectiveLevel scans dotted-prefix overrides (ordered most-specific-first at L53) and returns that entry's switch instead of the default minimum."
+   },
+   {
+    "q": "how do I attach a value to everything written inside a using block",
+    "answers": [
+     "Context/LogContext.cs:LogContext"
+    ],
+    "why": "Context/LogContext.cs:L55 PushProperty returns an IDisposable bookmark; the stack is held in an AsyncLocal at L40 so it flows across await and unwinds when the block exits."
+   },
+   {
+    "q": "how do I change the logging level while the program is running",
+    "answers": [
+     "Core/LoggingLevelSwitch.cs:LoggingLevelSwitch"
+    ],
+    "why": "Core/LoggingLevelSwitch.cs:L47 MinimumLevel is a settable volatile property that raises MinimumLevelChanged under a lock; the class doc at L18 says 'Dynamically controls logging level.'"
+   },
+   {
+    "q": "how are quotes and control characters escaped when writing a JSON string",
+    "answers": [
+     "Formatting/Json/JsonValueFormatter.cs:WriteQuotedJsonString"
+    ],
+    "why": "Formatting/Json/JsonValueFormatter.cs:L570 is the only escaper: L580 tests for c < 32, backslash or quote, and the default arm at L612 emits \\u plus a four-digit hex code. JsonFormatter.cs:L65 calls into it rather than doing its own escaping."
+   },
+   {
+    "q": "where is the message template broken into individual tokens",
+    "answers": [
+     "Parsing/MessageTemplateParser.cs:MessageTemplateParser"
+    ],
+    "why": "Parsing/MessageTemplateParser.cs:L41 Parse builds a MessageTemplate from Tokenize at L48, which yields the text and property tokens."
+   },
+   {
+    "q": "how does it avoid allocating a fresh buffer for each rendered message",
+    "answers": [
+     "Rendering/ReusableStringWriter.cs:ReusableStringWriter"
+    ],
+    "why": "Rendering/ReusableStringWriter.cs:L20 GetOrCreate hands back a [ThreadStatic] pooled writer, and Dispose at L40 clears the StringBuilder and parks the instance again (L57) instead of closing it, unless capacity exceeds 32768."
+   }
+  ],
+  "java-gson": [
+   {
+    "q": "how does it describe the spot inside the input where something went wrong",
+    "answers": [
+     "com/google/gson/stream/JsonReader.java:getPath"
+    ],
+    "why": "stream/JsonReader.java:L1767 builds a $.a[0] style location by walking the scope stack; L1761 locationString appends it to every error, L1814 is the public entry"
+   },
+   {
+    "q": "what stops an absurdly long run of digits from choking the parser",
+    "answers": [
+     "com/google/gson/internal/NumberLimits.java:NumberLimits"
+    ],
+    "why": "internal/NumberLimits.java:L14 MAX_NUMBER_STRING_LENGTH = 10_000 and L15-19 checkNumberStringLength throw before BigDecimal/BigInteger are built"
+   },
+   {
+    "q": "where does the web address in an error message pointing at the docs come from",
+    "answers": [
+     "com/google/gson/internal/TroubleshootingGuide.java:TroubleshootingGuide"
+    ],
+    "why": "internal/TroubleshootingGuide.java:L7-9 createUrl concatenates the section id onto the Troubleshooting.md link; it is the only place that URL is built"
+   },
+   {
+    "q": "what decides that a member should be left out of the result entirely",
+    "answers": [
+     "com/google/gson/internal/Excluder.java:Excluder"
+    ],
+    "why": "internal/Excluder.java:L39 doc says it selects which fields and types to omit; L53 defaults to skipping transient and static, L158 excludeField, L199 excludeClass"
+   },
+   {
+    "q": "how does it hold on to generic information that erasure would otherwise throw away",
+    "answers": [
+     "com/google/gson/reflect/TypeToken.java:TypeToken"
+    ],
+    "why": "reflect/TypeToken.java:L31-33 doc says Java has no way to represent generic types so this class does; L74 and L95 getTypeTokenTypeArgument recover it from the anonymous subclass"
+   },
+   {
+    "q": "how is a date written like 2011-12-03T10:15:30Z turned back into an object",
+    "answers": [
+     "com/google/gson/internal/bind/util/ISO8601Utils.java:ISO8601Utils"
+    ],
+    "why": "internal/bind/util/ISO8601Utils.java:L28-32 documents the exact supported parse layout and says it replaces SimpleDateFormat for speed"
+   },
+   {
+    "q": "what walks the declared members of a plain class and copies them across",
+    "answers": [
+     "com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java:ReflectiveTypeAdapterFactory"
+    ],
+    "why": "internal/bind/ReflectiveTypeAdapterFactory.java:L60 the factory, L320 getBoundFields collects the declared fields, L546 FieldReflectionAdapter and L571 RecordAdapter do the copying"
+   },
+   {
+    "q": "how is a map with keys that are not strings serialized",
+    "answers": [
+     "com/google/gson/internal/bind/MapTypeAdapterFactory.java:MapTypeAdapterFactory"
+    ],
+    "why": "internal/bind/MapTypeAdapterFactory.java:L41-66 doc walks through the Point key example and the fallback of emitting the map as an array of pairs"
+   },
+   {
+    "q": "how do I register a custom adapter for one particular class",
+    "answers": [
+     "com/google/gson/GsonBuilder.java:registerTypeAdapter"
+    ],
+    "why": "GsonBuilder.java:L740 registerTypeAdapter(Type, Object) is the documented hook; L796 factory form and L819 hierarchy form are the variants"
+   },
+   {
+    "q": "how does an enum constant get matched to its text form",
+    "answers": [
+     "com/google/gson/internal/bind/EnumTypeAdapter.java:EnumTypeAdapter"
+    ],
+    "why": "internal/bind/EnumTypeAdapter.java:L60-62 nameToConstant and constantToName, filled at L95-104 including SerializedName alternates; L114 read and L126 write use them"
+   }
+  ],
+  "js-axios": [
+   {
+    "q": "how does it decide whether a response counts as a failure",
+    "answers": [
+     "core/settle.js:settle"
+    ],
+    "why": "settle.js:L16 - the only place validateStatus is consulted; resolves on pass, rejects with ERR_BAD_REQUEST/ERR_BAD_RESPONSE at L19-25"
+   },
+   {
+    "q": "how is a base address joined to a relative path without doubling the slash",
+    "answers": [
+     "helpers/combineURLs.js:combineURLs"
+    ],
+    "why": "combineURLs.js:L18-22 - walks back over trailing '/' (charCode 47) on the base, strips leading slashes off the relative part, joins with exactly one"
+   },
+   {
+    "q": "how does the library choose which transport to send a request through",
+    "answers": [
+     "adapters/adapters.js:getAdapter"
+    ],
+    "why": "adapters.js:L74-93 - loops the candidate list, resolves names against knownAdapters, picks the first supported one; called from dispatchRequest.js:L52"
+   },
+   {
+    "q": "what computes the transfer rate in bytes per second from recent samples",
+    "answers": [
+     "helpers/speedometer.js:speedometer"
+    ],
+    "why": "speedometer.js:L34-51 - sums a ring buffer of recent chunk sizes and returns bytesCount*1000/passed"
+   },
+   {
+    "q": "how do the options passed to a single call get combined with the instance wide defaults",
+    "answers": [
+     "core/mergeConfig.js:mergeConfig"
+    ],
+    "why": "mergeConfig.js:L28 entry, L152-157 - per-key mergeMap decides how each config key from config1 (defaults) and config2 (the call) is resolved; invoked at Axios.js:L93"
+   },
+   {
+    "q": "when does a request skip the proxy because of an environment variable",
+    "answers": [
+     "helpers/shouldBypassProxy.js:shouldBypassProxy"
+    ],
+    "why": "shouldBypassProxy.js:L447 reads process.env.no_proxy/NO_PROXY and L463-503 matches the host against each entry; the http adapter calls it at http.js:L272"
+   },
+   {
+    "q": "how are several abort signals and a timeout folded into one",
+    "answers": [
+     "helpers/composeSignals.js:composeSignals"
+    ],
+    "why": "composeSignals.js:L12 makes one AbortController, L29-34 arms the timeout, L48-59 forwards every incoming signal to it"
+   },
+   {
+    "q": "how are query parameters attached to the end of a url",
+    "answers": [
+     "helpers/buildURL.js:buildURL"
+    ],
+    "why": "buildURL.js:L59-66 - serializes params then appends with '?' or '&' after dropping any fragment; encode() at L14 only escapes one value"
+   },
+   {
+    "q": "how do you remove one interceptor that was added earlier",
+    "answers": [
+     "core/InterceptorManager.js:eject"
+    ],
+    "why": "InterceptorManager.js:L101-124 - takes the id returned by use() and nulls that slot; clear() at L131 is the remove-everything case, not this one"
+   },
+   {
+    "q": "how is a submitted form turned back into a plain object",
+    "answers": [
+     "helpers/formDataToJSON.js:formDataToJSON"
+    ],
+    "why": "formDataToJSON.js:L112-120 - walks formData.entries() and rebuilds nested keys into an object; returns null for non-FormData input at L122"
+   }
+  ],
+  "kt-okhttp": [
+   {
+    "q": "how does it decide whether a saved reply can be reused without going to the network",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/cache/CacheStrategy.kt:CacheStrategy"
+    ],
+    "why": "internal/cache/CacheStrategy.kt:L38 class doc says it figures out whether to use the network, the cache, or both; internal/cache/CacheInterceptor.kt:L52 just calls CacheStrategy.Factory(...).compute() and obeys the result, so the deciding lives here"
+   },
+   {
+    "q": "what asks the server for compressed bytes and then unpacks them again",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/http/BridgeInterceptor.kt:BridgeInterceptor"
+    ],
+    "why": "internal/http/BridgeInterceptor.kt:L67 sets transparentGzip and L70 adds the Accept-Encoding gzip header; L97 wraps the body in GzipSource and L106 rebuilds the response"
+   },
+   {
+    "q": "where is the ceiling on how many calls may be in flight at once",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/Dispatcher.kt:Dispatcher"
+    ],
+    "why": "Dispatcher.kt:L53 var maxRequests = 64 and L73 maxRequestsPerHost = 5; L228 skips a call once its host is at capacity"
+   },
+   {
+    "q": "where are unused sockets kept so a later request can grab one",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/connection/RealConnectionPool.kt:RealConnectionPool"
+    ],
+    "why": "internal/connection/RealConnectionPool.kt:L58 holds the ConcurrentLinkedQueue<RealConnection>, L137 adds and L184 evicts the longest idle one; ConnectionPool.kt:L38 is only a public wrapper holding a delegate to this class"
+   },
+   {
+    "q": "what stops an endless chain of redirects",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/http/RetryAndFollowUpInterceptor.kt:RetryAndFollowUpInterceptor"
+    ],
+    "why": "internal/http/RetryAndFollowUpInterceptor.kt:L355 MAX_FOLLOW_UPS = 20 and L113 throws once ++followUpCount passes it"
+   },
+   {
+    "q": "how can I make the app refuse a server whose public key is not one I expect",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/CertificatePinner.kt:CertificatePinner"
+    ],
+    "why": "CertificatePinner.kt:L29 class doc, constrains which certificates are trusted by pinning the Subject Public Key Info; class declared at L135"
+   },
+   {
+    "q": "how does a long lived websocket send a periodic ping to stay open",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/ws/RealWebSocket.kt:RealWebSocket"
+    ],
+    "why": "internal/ws/RealWebSocket.kt:L288 checks pingIntervalMillis and L290 schedules a repeating task calling writePingFrame; the writer only emits a frame when told to"
+   },
+   {
+    "q": "how is a multipart form body written out with its boundary markers",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/MultipartBody.kt:MultipartBody"
+    ],
+    "why": "MultipartBody.kt:L114 writeOrCountBytes, L132 writes DASHDASH then the boundary per part and L172 writes the closing DASHDASH boundary DASHDASH"
+   },
+   {
+    "q": "what parses the first line of an http reply into a code and a message",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/http/StatusLine.kt:StatusLine"
+    ],
+    "why": "internal/http/StatusLine.kt:L25 holds protocol, code and message; L47 fun parse turns the raw HTTP/1.1 200 OK text into them"
+   },
+   {
+    "q": "how does a domain name with accents get turned into plain ascii",
+    "answers": [
+     "commonJvmAndroid/kotlin/okhttp3/internal/idn/Punycode.kt:Punycode"
+    ],
+    "why": "internal/idn/Punycode.kt:L22 doc names RFC 3492 for internationalized domain names; L51 fun encode does the non-ascii to ascii direction, L152 fun decode the reverse"
+   }
+  ],
+  "lua-telescope": [
+   {
+    "q": "where does a freshly scored result get slotted so the visible list stays in order",
+    "answers": [
+     "telescope/entry_manager.lua:add_entry"
+    ],
+    "why": "entry_manager.lua:L119-146 walks the linked list and inserts before the first container with a worse score; L119 short-circuits anything worse than worst_acceptable_score"
+   },
+   {
+    "q": "which ranking strategy favours things that came earlier in the raw output",
+    "answers": [
+     "telescope/sorters.lua:fuzzy_with_index_bias"
+    ],
+    "why": "sorters.lua:L420-431 returns entry.index when the base score is zero, otherwise multiplies by min(entry.index^0.25, 2)"
+   },
+   {
+    "q": "how can I make a ranker treat a leading colon separated word as a category filter",
+    "answers": [
+     "telescope/sorters.lua:prefilter"
+    ],
+    "why": "sorters.lua:L612-623 defaults the delimiter to ':' and installs filter_function, which at sorters.lua:L583 matches '^(:(%S+)[:%s])' and strips the tag off the prompt"
+   },
+   {
+    "q": "which function hands back the character offsets that a fuzzy match lined up on",
+    "answers": [
+     "telescope/algos/fzy.lua:positions"
+    ],
+    "why": "fzy.lua:L142-178 returns the array of string indices; sorters.lua:L473 uses exactly this as the fzy sorter's highlighter"
+   },
+   {
+    "q": "what draws the floating panel showing every mapping currently available",
+    "answers": [
+     "telescope/actions/init.lua:which_key"
+    ],
+    "why": "actions/init.lua:L1256 sizes mode/keybind/name columns and L1393 calls popup.create; actions/generate.lua:L56 only wraps this one with options"
+   },
+   {
+    "q": "how do I turn a live external search into filtering over results already fetched",
+    "answers": [
+     "telescope/actions/init.lua:to_fuzzy_refine"
+    ],
+    "why": "actions/init.lua:L1480-1508 swaps in conf.generic_sorter and calls actions.generate.refine with the current line in the title"
+   },
+   {
+    "q": "how do I get rid of an open file straight from the results",
+    "answers": [
+     "telescope/actions/init.lua:delete_buffer"
+    ],
+    "why": "actions/init.lua:L1174-1208 hands picker:delete_selection a callback that calls nvim_buf_delete and walks the jumplist for a replacement buffer"
+   },
+   {
+    "q": "how do I build a source that runs a program a single time and reuses its output",
+    "answers": [
+     "telescope/finders.lua:new_oneshot_job"
+    ],
+    "why": "finders.lua:L189-215 splits the command list and hands fn_command to async_oneshot_finder, whose job_started guard (async_oneshot_finder.lua:L35-56) spawns only once"
+   },
+   {
+    "q": "how are the columns in each result row assigned their widths",
+    "answers": [
+     "telescope/pickers/entry_display.lua:create"
+    ],
+    "why": "entry_display.lua:L66-95 builds one generator per configured item, resolving v.width through resolve.resolve_width and padding with strings.align_str"
+   },
+   {
+    "q": "what keeps the running count above the prompt from redrawing on every incoming match",
+    "answers": [
+     "telescope/debounce.lua:throttle_leading"
+    ],
+    "why": "pickers.lua:L580 wraps get_status_updater in debounce.throttle_leading(status_updater, 50); debounce.lua:L19-33 fires on the leading edge then drops calls for 50ms"
+   }
+  ],
+  "php-slim": [
+   {
+    "q": "how does a browser form pretend to be a delete or a put",
+    "answers": [
+     "Middleware/MethodOverrideMiddleware.php:MethodOverrideMiddleware"
+    ],
+    "why": "Middleware/MethodOverrideMiddleware.php:L26 reads the X-Http-Method-Override header, and L30-L35 falls back to a _METHOD field inside a POST body; nothing else in the tree rewrites the request method."
+   },
+   {
+    "q": "how does the framework tell the client how many bytes the body is",
+    "answers": [
+     "Middleware/ContentLengthMiddleware.php:ContentLengthMiddleware"
+    ],
+    "why": "Middleware/ContentLengthMiddleware.php:L26-L29 takes getBody()->getSize() and sets the Content-Length header when the response does not already carry one."
+   },
+   {
+    "q": "what captures text echoed by a handler before it reaches the page",
+    "answers": [
+     "Middleware/OutputBufferingMiddleware.php:OutputBufferingMiddleware"
+    ],
+    "why": "Middleware/OutputBufferingMiddleware.php:L55-L57 wraps the inner handler in ob_start/ob_get_clean, and L63-L70 appends or prepends the captured string to the response body."
+   },
+   {
+    "q": "where does incoming json become a php array",
+    "answers": [
+     "Middleware/BodyParsingMiddleware.php:BodyParsingMiddleware"
+    ],
+    "why": "Middleware/BodyParsingMiddleware.php:L99-L108 registers the application/json parser built on json_decode($input, true), and L55 process() attaches the result as the parsed body."
+   },
+   {
+    "q": "how do I make a link that already includes the application base path",
+    "answers": [
+     "Routing/RouteParser.php:urlFor"
+    ],
+    "why": "Routing/RouteParser.php:L104-L113 is the only builder that prefixes routeCollector->getBasePath(); relativeUrlFor (L40) omits it and fullUrlFor (L119) adds scheme and authority on top of urlFor."
+   },
+   {
+    "q": "how does it work out from the request whether an error should come back as html or plain text",
+    "answers": [
+     "Handlers/ErrorHandler.php:determineContentType"
+    ],
+    "why": "Handlers/ErrorHandler.php:L172-L191 intersects the Accept header with the registered renderer keys and breaks the tie away from text/plain; determineRenderer (L216) only maps the already-chosen type to a renderer."
+   },
+   {
+    "q": "why does a 204 send nothing at all to the client",
+    "answers": [
+     "ResponseEmitter.php:isResponseEmpty"
+    ],
+    "why": "ResponseEmitter.php:L124-L128 returns true for status 204, 205 and 304, and emit() at L50-L52 skips emitBody entirely when it does."
+   },
+   {
+    "q": "how can path placeholders arrive as individual positional parameters",
+    "answers": [
+     "Handlers/Strategies/RequestResponseArgs.php:RequestResponseArgs"
+    ],
+    "why": "Handlers/Strategies/RequestResponseArgs.php:L29 spreads array_values($routeArguments) positionally; the sibling RequestResponseNamedArgs.php:L28 spreads the associative array as named arguments instead, so 'positional' picks exactly one."
+   },
+   {
+    "q": "how does a nested group get the outer prefix glued onto its pattern",
+    "answers": [
+     "Routing/RouteCollectorProxy.php:group"
+    ],
+    "why": "Routing/RouteCollectorProxy.php:L177 does $pattern = $this->groupPattern . $pattern before delegating; RouteCollector::group (L230) creates the group object but never concatenates the prefix."
+   },
+   {
+    "q": "which exception carries the list of methods allowed for a path",
+    "answers": [
+     "Exception/HttpMethodNotAllowedException.php:HttpMethodNotAllowedException"
+    ],
+    "why": "Exception/HttpMethodNotAllowedException.php:L20 holds $allowedMethods with the getter at L38 and code 405 at L25; Middleware/RoutingMiddleware.php:L79-L81 fills it from the routing results."
+   }
+  ],
+  "ruby-rack": [
+   {
+    "q": "how does it work out which client address to trust when proxies sit in front",
+    "answers": [
+     "rack/request.rb:ip"
+    ],
+    "why": "rack/request.rb:L508 walks REMOTE_ADDR backwards returning the first untrusted address, then falls back to the forwarded-for chain at L515; the ip at L67 is a one-line delegate to this one"
+   },
+   {
+    "q": "how does the app shrink what it sends back so less travels over the wire",
+    "answers": [
+     "rack/deflater.rb:Deflater"
+    ],
+    "why": "rack/deflater.rb:L28 class, doc at L12 'content encoding of http responses, usually for purposes of compression'; L57 call picks the encoding and wraps the body in GzipStream"
+   },
+   {
+    "q": "what tries a list of apps in order until one of them actually answers",
+    "answers": [
+     "rack/cascade.rb:Cascade"
+    ],
+    "why": "rack/cascade.rb:L11 class, doc at L6 'tries a request on several apps, and returns the first response that is not 404 or 405'; L32 call loops over @apps"
+   },
+   {
+    "q": "what stops two threads from running through the application at the same moment",
+    "answers": [
+     "rack/lock.rb:Lock"
+    ],
+    "why": "rack/lock.rb:L8 class, doc at L6 'locks every request inside a mutex'; L13 call takes @mutex.lock and releases it via a BodyProxy"
+   },
+   {
+    "q": "how can a plain html form pretend to be a delete or a put",
+    "answers": [
+     "rack/method_override.rb:MethodOverride"
+    ],
+    "why": "rack/method_override.rb:L8 class; the _method form field at L15 and the X-HTTP-Method-Override header at L16 are read by method_override at L41 and rewritten into REQUEST_METHOD at L34"
+   },
+   {
+    "q": "how does it guess what kind of content a served file holds from its name ending",
+    "answers": [
+     "rack/mime.rb:mime_type"
+    ],
+    "why": "rack/mime.rb:L18 fetches the '.ext' key out of MIME_TYPES with a fallback; rack/files.rb:L223 has a same-named helper but it just delegates here"
+   },
+   {
+    "q": "how do i get at the cookies a browser sent along with a request",
+    "answers": [
+     "rack/request.rb:cookies"
+    ],
+    "why": "rack/request.rb:L378 caches a parsed hash under RACK_REQUEST_COOKIE_HASH and refills it from Utils.parse_cookies_header when the raw string changes; the request side is what the question asks for, not the utils helper"
+   },
+   {
+    "q": "how does it find the boundary marker inside a multipart content type header",
+    "answers": [
+     "rack/multipart/parser.rb:parse_boundary"
+    ],
+    "why": "rack/multipart/parser.rb:L122 matches MULTIPART against the content type and returns capture 2, raising BoundaryTooLongError when a second boundary parameter follows"
+   },
+   {
+    "q": "how do i mount several different apps under different url prefixes",
+    "answers": [
+     "rack/urlmap.rb:URLMap"
+    ],
+    "why": "rack/urlmap.rb:L20 class, doc at L8 'takes a hash mapping urls or paths to apps, and dispatches accordingly'; remap at L25 sorts longest location first"
+   },
+   {
+    "q": "how does it check whether the cached copy a browser already holds is still fresh",
+    "answers": [
+     "rack/conditional_get.rb:fresh?"
+    ],
+    "why": "rack/conditional_get.rb:L52 checks if-none-match first then if-modified-since; call at L34 turns a true result into a 304 with an emptied body"
+   }
+  ],
+  "rust-ripgrep": [
+   {
+    "q": "how does it decide that a file is not text and stop reading it",
+    "answers": [
+     "searcher/src/searcher/mod.rs:BinaryDetection"
+    ],
+    "why": "searcher/src/searcher/mod.rs:L55 \u2014 the type whose none/quit/convert constructors (L62, L81, L98) pick the strategy for spotting non-text data and ending the search as if at EOF"
+   },
+   {
+    "q": "how does it decide whether to load an entire file into memory at once instead of reading it in pieces",
+    "answers": [
+     "searcher/src/searcher/mmap.rs:MmapChoice"
+    ],
+    "why": "searcher/src/searcher/mmap.rs:L13 \u2014 doc at L5 says it 'Controls the strategy used for determining when to use memory maps'; auto() at L48, never() at L54"
+   },
+   {
+    "q": "what does a caller implement to receive every hit as the search produces it",
+    "answers": [
+     "searcher/src/sink.rs:Sink"
+    ],
+    "why": "searcher/src/sink.rs:L102 \u2014 the trait callers implement; its matched method at L124 is documented as 'called whenever a match is found'"
+   },
+   {
+    "q": "how does searching work when a match is allowed to span several lines",
+    "answers": [
+     "searcher/src/searcher/glue.rs:MultiLine"
+    ],
+    "why": "searcher/src/searcher/glue.rs:L142 \u2014 the third search strategy alongside ReadByLine (L11) and SliceByLine (L97); its new() at L149 asserts searcher.multi_line_with_matcher"
+   },
+   {
+    "q": "how do I get one machine readable record per match instead of the usual output",
+    "answers": [
+     "printer/src/json.rs:JSON"
+    ],
+    "why": "printer/src/json.rs:L487 - the JSON Lines printer; its doc block at L470-L484 shows the one-object-per-match records it emits, sibling of Standard (standard.rs:L480) and Summary (summary.rs:L349)"
+   },
+   {
+    "q": "how are directories crawled using more than one thread at a time",
+    "answers": [
+     "ignore/src/walk.rs:WalkParallel"
+    ],
+    "why": "ignore/src/walk.rs:L1411 \u2014 the type returned by WalkBuilder::build_parallel (L701); its visit() at L1452 spawns the worker threads"
+   },
+   {
+    "q": "where does it look up the user's global list of files to skip",
+    "answers": [
+     "ignore/src/gitignore.rs:gitconfig_excludes_path"
+    ],
+    "why": "ignore/src/gitignore.rs:L583 \u2014 doc at L580 'Return the file path of the current environment's global gitignore file'; it reads GIT_CONFIG_GLOBAL, then $HOME/.gitconfig, then XDG, then system config"
+   },
+   {
+    "q": "what decides whether a path passes the include and exclude patterns typed on the command line",
+    "answers": [
+     "ignore/src/overrides.rs:Override"
+    ],
+    "why": "ignore/src/overrides.rs:L47 \u2014 doc at L45 'Manages a set of overrides provided explicitly by the end user'; its matched() at L96 answers for one path"
+   },
+   {
+    "q": "how does it go faster by pulling a plain string out of the pattern first",
+    "answers": [
+     "regex/src/literal.rs:InnerLiterals"
+    ],
+    "why": "regex/src/literal.rs:L40 \u2014 doc at L19-L23 describes searching for the literal, finding the bounds of the line it occurs in, then running the original regex on only that line"
+   },
+   {
+    "q": "how is the text of a match rewritten before it gets printed",
+    "answers": [
+     "printer/src/util.rs:Replacer"
+    ],
+    "why": "printer/src/util.rs:L14 \u2014 doc at L13 'A type for handling replacements while amortizing allocation'; replace_all() at L51 does the substitution the printers then emit"
+   }
+  ],
+  "swift-alamofire": [
+   {
+    "q": "which type watches for the device switching between wifi and cellular",
+    "answers": [
+     "Features/NetworkReachabilityManager.swift:NetworkReachabilityManager"
+    ],
+    "why": "Features/NetworkReachabilityManager.swift:L41 class decl; doc L30-31 says it listens for reachability changes for both cellular and WiFi interfaces, and L61-66 defines ConnectionType .ethernetOrWiFi / .cellular. Only type in the corpus that reports link type."
+   },
+   {
+    "q": "what holds a failed call until the internet comes back",
+    "answers": [
+     "Features/OfflineRetrier.swift:OfflineRetrier"
+    ],
+    "why": "Features/OfflineRetrier.swift:L29-31 doc: uses NWPathMonitor to detect when connectivity is restored to retry failed requests; L50-58 pendingCompletions plus a timeoutWorkItem hold the retry decision open."
+   },
+   {
+    "q": "what refreshes an expired token and queues other calls while it happens",
+    "answers": [
+     "Features/AuthenticationInterceptor.swift:AuthenticationInterceptor"
+    ],
+    "why": "Features/AuthenticationInterceptor.swift:L158-160 doc: manages the queuing and threading complexity of authenticating requests and Credential refresh; L216-219 adaptOperations / requestsToRetry are the queues."
+   },
+   {
+    "q": "how do I keep a value safe when two threads write to it at once",
+    "answers": [
+     "Core/Protected.swift:Protected"
+    ],
+    "why": "Core/Protected.swift:L83-84 doc 'A thread-safe wrapper around a value'; L101 read and L110 write both go through lock.around. UnfairLock (L55) is the lock itself, not the wrapper a caller uses."
+   },
+   {
+    "q": "how are the underlying system jobs matched back to the objects that started them",
+    "answers": [
+     "Core/RequestTaskMap.swift:RequestTaskMap"
+    ],
+    "why": "Core/RequestTaskMap.swift:L27-28 doc: maintains a two way, one to one map of URLSessionTasks to Requests; L31-33 holds both directions plus per-task event flags."
+   },
+   {
+    "q": "how does it wait longer and longer between attempts after something fails",
+    "answers": [
+     "Features/RetryPolicy.swift:RetryPolicy"
+    ],
+    "why": "Features/RetryPolicy.swift:L27-29 doc says exponential backoff; L33 defaultExponentialBackoffBase = 2 and L36 defaultExponentialBackoffScale = 0.5 are the growth knobs."
+   },
+   {
+    "q": "how do I pin a certificate so the app trusts only my own server",
+    "answers": [
+     "Features/ServerTrustEvaluation.swift:PinnedCertificatesTrustEvaluator"
+    ],
+    "why": "Features/ServerTrustEvaluation.swift:L229 class decl; doc L224-227 describes certificate pinning against bundled certificates. PublicKeysTrustEvaluator (L320) pins keys, not certificates, so the certificate wording picks one."
+   },
+   {
+    "q": "are header names compared without regard to capitalization",
+    "answers": [
+     "Core/HTTPHeaders.swift:HTTPHeaders"
+    ],
+    "why": "Core/HTTPHeaders.swift:L27-28 doc 'order-preserving and case-insensitive representation of HTTP headers'; L92 sort uses lowercased() and L110 value(for:) looks up via the case-insensitive index(of:)."
+   },
+   {
+    "q": "how do I attach a file and some form fields to one upload",
+    "answers": [
+     "Features/MultipartFormData.swift:MultipartFormData"
+    ],
+    "why": "Features/MultipartFormData.swift:L45 class decl; L148 append(_ data:withName:) and L172 append(_ fileURL:withName:) are the caller-facing builders. MultipartUpload (Features/MultipartUpload.swift:L28) is marked 'Internal type' and only wraps this one."
+   },
+   {
+    "q": "how do I stream a response as it arrives instead of waiting for the whole body",
+    "answers": [
+     "Core/DataStreamRequest.swift:DataStreamRequest"
+    ],
+    "why": "Core/DataStreamRequest.swift:L26-27 doc: Request subclass which streams HTTP response Data through a Handler closure; L34 Stream and L48 Event carry each chunk."
+   }
   ]
  }
 }

@@ -1,4 +1,52 @@
 {
+ "bash-bats": {
+  "how are parallel jobs kept from exceeding the allowed number at once": 0,
+  "how are warnings about deprecated usage written out": 2,
+  "how can I chain commands together and still get a single exit code": -1,
+  "how do I run a command and capture what it printed": -1,
+  "how does a test skip itself when a prerequisite is missing": 2,
+  "how does it compare two release numbers to see which one is older": -1,
+  "how does it notice when the plan promises twenty results but only nineteen arrive": -1,
+  "how is the chain of calls leading to a failure shown to the user": -1,
+  "how is the root folder for reporting file names worked out": -1,
+  "where does it look for a helper library on the search path": -1
+ },
+ "c-redis": {
+  "how are entries moved into the bigger bucket array a little at a time": -1,
+  "how are keys that already timed out swept away in the background": -1,
+  "how do you leave a placeholder for a count you cannot know until later": -1,
+  "how does a background save child get forked off": -1,
+  "how does a master decide that a partial resync is possible": 0,
+  "how does the append command behave when the key does not exist yet": 2,
+  "how is a value's encoding turned into a name you can print": -1,
+  "what actually runs a command and keeps track of how long it took": -1,
+  "what frees up keys once the memory ceiling has been reached": -1,
+  "what handles a read from a client socket": -1
+ },
+ "cpp-fmt": {
+  "how can bold and underline be combined into a single value": -1,
+  "how does a chosen style turn into the bytes a terminal understands": -1,
+  "how does a duration get written with its fractional seconds": -1,
+  "how does it know a Chinese character takes up two columns on screen": -1,
+  "what catches a bad placeholder before the program is even run": -1,
+  "what emits each part of a calendar time such as the month name and the hour": -1,
+  "what keeps ownership of arguments added at run time so their addresses never move": -1,
+  "what puts the surrounding quotes on a string and escapes what is inside": 1,
+  "what starts out using space on the stack and only allocates once that fills up": -1,
+  "where does it decide to put a comma every three places in a large number": -1
+ },
+ "cs-serilog": {
+  "how are quotes and control characters escaped when writing a JSON string": 0,
+  "how can one namespace be made noisier than the rest of the app": -1,
+  "how do I attach a value to everything written inside a using block": -1,
+  "how do I change the logging level while the program is running": -1,
+  "how does it avoid allocating a fresh buffer for each rendered message": -1,
+  "how does it back off when the server it writes to keeps refusing": -1,
+  "is the same format string reparsed on every call": -1,
+  "what stops an object graph from being walked all the way down": -1,
+  "where do the short severity abbreviations like INF and WRN come from": -1,
+  "where is the message template broken into individual tokens": -1
+ },
  "django": {
   "how are database rows queried": 2,
   "how are migrations applied to the database": -1,
@@ -47,6 +95,54 @@
   "how is the hardware address of the machine found": 0,
   "which version of the spec does a uuid follow": 0
  },
+ "java-gson": {
+  "how do I register a custom adapter for one particular class": 1,
+  "how does an enum constant get matched to its text form": -1,
+  "how does it describe the spot inside the input where something went wrong": -1,
+  "how does it hold on to generic information that erasure would otherwise throw away": 0,
+  "how is a date written like 2011-12-03T10:15:30Z turned back into an object": -1,
+  "how is a map with keys that are not strings serialized": 1,
+  "what decides that a member should be left out of the result entirely": -1,
+  "what stops an absurdly long run of digits from choking the parser": -1,
+  "what walks the declared members of a plain class and copies them across": -1,
+  "where does the web address in an error message pointing at the docs come from": -1
+ },
+ "js-axios": {
+  "how are query parameters attached to the end of a url": 0,
+  "how are several abort signals and a timeout folded into one": -1,
+  "how do the options passed to a single call get combined with the instance wide defaults": -1,
+  "how do you remove one interceptor that was added earlier": -1,
+  "how does it decide whether a response counts as a failure": -1,
+  "how does the library choose which transport to send a request through": -1,
+  "how is a base address joined to a relative path without doubling the slash": -1,
+  "how is a submitted form turned back into a plain object": 2,
+  "what computes the transfer rate in bytes per second from recent samples": 2,
+  "when does a request skip the proxy because of an environment variable": -1
+ },
+ "kt-okhttp": {
+  "how can I make the app refuse a server whose public key is not one I expect": -1,
+  "how does a domain name with accents get turned into plain ascii": -1,
+  "how does a long lived websocket send a periodic ping to stay open": -1,
+  "how does it decide whether a saved reply can be reused without going to the network": -1,
+  "how is a multipart form body written out with its boundary markers": 0,
+  "what asks the server for compressed bytes and then unpacks them again": -1,
+  "what parses the first line of an http reply into a code and a message": -1,
+  "what stops an endless chain of redirects": -1,
+  "where are unused sockets kept so a later request can grab one": -1,
+  "where is the ceiling on how many calls may be in flight at once": -1
+ },
+ "lua-telescope": {
+  "how are the columns in each result row assigned their widths": -1,
+  "how can I make a ranker treat a leading colon separated word as a category filter": -1,
+  "how do I build a source that runs a program a single time and reuses its output": -1,
+  "how do I get rid of an open file straight from the results": -1,
+  "how do I turn a live external search into filtering over results already fetched": -1,
+  "what draws the floating panel showing every mapping currently available": -1,
+  "what keeps the running count above the prompt from redrawing on every incoming match": -1,
+  "where does a freshly scored result get slotted so the visible list stays in order": -1,
+  "which function hands back the character offsets that a fuzzy match lined up on": -1,
+  "which ranking strategy favours things that came earlier in the raw output": -1
+ },
  "numpy": {
   "how do I fit a polynomial to data": -1,
   "how is a fast fourier transform computed": 0,
@@ -58,6 +154,18 @@
   "how is an array saved to a file": -1,
   "how is einstein summation done": 0,
   "what holds an array with missing values": -1
+ },
+ "php-slim": {
+  "how can path placeholders arrive as individual positional parameters": -1,
+  "how do I make a link that already includes the application base path": -1,
+  "how does a browser form pretend to be a delete or a put": -1,
+  "how does a nested group get the outer prefix glued onto its pattern": -1,
+  "how does it work out from the request whether an error should come back as html or plain text": -1,
+  "how does the framework tell the client how many bytes the body is": -1,
+  "what captures text echoed by a handler before it reaches the page": -1,
+  "where does incoming json become a php array": -1,
+  "which exception carries the list of methods allowed for a path": -1,
+  "why does a 204 send nothing at all to the client": -1
  },
  "pydantic": {
   "how are dataclasses supported": 0,
@@ -94,6 +202,42 @@
   "how is styled text stored": 1,
   "what draws a box around content": 1,
   "what is the main object you print with": -1
+ },
+ "ruby-rack": {
+  "how can a plain html form pretend to be a delete or a put": -1,
+  "how do i get at the cookies a browser sent along with a request": -1,
+  "how do i mount several different apps under different url prefixes": -1,
+  "how does it check whether the cached copy a browser already holds is still fresh": 0,
+  "how does it find the boundary marker inside a multipart content type header": -1,
+  "how does it guess what kind of content a served file holds from its name ending": -1,
+  "how does it work out which client address to trust when proxies sit in front": -1,
+  "how does the app shrink what it sends back so less travels over the wire": -1,
+  "what stops two threads from running through the application at the same moment": -1,
+  "what tries a list of apps in order until one of them actually answers": -1
+ },
+ "rust-ripgrep": {
+  "how are directories crawled using more than one thread at a time": 0,
+  "how do I get one machine readable record per match instead of the usual output": -1,
+  "how does it decide that a file is not text and stop reading it": -1,
+  "how does it decide whether to load an entire file into memory at once instead of reading it in pieces": -1,
+  "how does it go faster by pulling a plain string out of the pattern first": -1,
+  "how does searching work when a match is allowed to span several lines": -1,
+  "how is the text of a match rewritten before it gets printed": -1,
+  "what decides whether a path passes the include and exclude patterns typed on the command line": -1,
+  "what does a caller implement to receive every hit as the search produces it": -1,
+  "where does it look up the user's global list of files to skip": -1
+ },
+ "swift-alamofire": {
+  "are header names compared without regard to capitalization": -1,
+  "how are the underlying system jobs matched back to the objects that started them": -1,
+  "how do I attach a file and some form fields to one upload": 1,
+  "how do I keep a value safe when two threads write to it at once": -1,
+  "how do I pin a certificate so the app trusts only my own server": 0,
+  "how do I stream a response as it arrives instead of waiting for the whole body": -1,
+  "how does it wait longer and longer between attempts after something fails": -1,
+  "what holds a failed call until the internet comes back": -1,
+  "what refreshes an expired token and queues other calls while it happens": -1,
+  "which type watches for the device switching between wifi and cellular": -1
  },
  "torch": {
   "how are batches loaded during training": -1,

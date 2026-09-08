@@ -1,26 +1,26 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 192213,
-  "contains": 104490,
+  "calls": 192224,
+  "contains": 104493,
   "imports": 84301,
   "inherits": 4507,
   "rationale_for": 26028
  },
- "edges_total": 411539,
- "edges_unresolved": 224554,
+ "edges_total": 411553,
+ "edges_unresolved": 224567,
  "files_failed": 0,
  "files_parsed": 11013,
  "id_collisions": 8935,
- "ids_unique": 125058,
+ "ids_unique": 125061,
  "nodes_by_kind": {
   "class": 19733,
   "file": 11013,
-  "function": 37875,
+  "function": 37878,
   "method": 46882,
   "rationale": 26028
  },
- "nodes_total": 141531,
+ "nodes_total": 141534,
  "refusals_by_reason": {
   "base class outside this corpus": 1512,
   "called on self, but no such method on the class": 5640,
@@ -51,7 +51,7 @@
   "name defined in 18 scopes of this file, cannot choose": 5,
   "name defined in 188 places, cannot choose": 253,
   "name defined in 19 places, cannot choose": 199,
-  "name defined in 2 places, cannot choose": 3717,
+  "name defined in 2 places, cannot choose": 3721,
   "name defined in 2 scopes of this file, cannot choose": 1227,
   "name defined in 20 places, cannot choose": 69,
   "name defined in 21 places, cannot choose": 181,
@@ -134,10 +134,10 @@
   "name defined in 9 scopes of this file, cannot choose": 22,
   "name defined in 97 places, cannot choose": 47,
   "name defined in 98 places, cannot choose": 48,
-  "not defined in this corpus (builtin or third party)": 34703,
+  "not defined in this corpus (builtin or third party)": 34704,
   "python builtin": 47775,
   "receiver is a self attribute of unknown type": 4664,
-  "receiver type unknown": 57764,
+  "receiver type unknown": 57776,
   "receiver typed, but no such method in the corpus": 15378
  },
  "resolved_by_rule": {
@@ -145,13 +145,13 @@
   "imported": 9487,
   "module in corpus": 5699,
   "receiver-typed": 4127,
-  "same file": 17894,
+  "same file": 17896,
   "self-attribute-typed": 400,
   "self-method": 7363,
-  "unique in corpus": 8502
+  "unique in corpus": 8498
  },
  "shape": {
-  "groups": 3408,
+  "groups": 3411,
   "ungrouped": 5093
  }
 }

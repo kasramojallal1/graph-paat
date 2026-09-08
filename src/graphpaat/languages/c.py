@@ -9,7 +9,7 @@ function pointers looks like an object with methods and is not one -- the
 pointer is a field whose value is chosen at run time, and inventing a method
 node for it would put a definition in the map that the source does not contain.
 
-Three decisions cost something and were measured rather than assumed.
+Four decisions cost something and were measured rather than assumed.
 
 **The extension is part of a file's identity** (`KEEP_EXTENSION`). `url.c` and
 `url.h` are two files, not one. Dropping the extension made curl's `lib/` lose
@@ -32,6 +32,18 @@ in one file, once per platform, behind `#ifdef`; that pattern alone would mint
 81 colliding ids on redis and 102 on curl -- 13% and 20% of all macro
 definitions -- and on curl 120 macro names shadow a real function of the same
 name. A node that silently merges with another is worse than an absent one.
+
+**A failed parse is read anyway.** C's preprocessor lets a `#ifdef` open a
+brace in one arm and close it in another, which no grammar can parse; when that
+happens tree-sitter collapses everything after it into one ERROR node. Reading
+only well-formed children then reads the whole file as empty. Measured on curl,
+five `.c` files -- `cf-haproxy.c`, `curlx/timeval.c`, `http.c`, `vauth/gsasl.c`
+and `vtls/apple.c` -- produced zero function nodes for this reason, and `http.c`
+alone defines 98 of them; two more, `cf-socket.c` and `vtls/vtls.c`, lost
+everything after the break without going empty. `_salvage` reaches into the
+wreckage for the declarations that are still intact -- 182 functions and 6 types
+on curl, one function on redis. What it cannot recover is the body of the one
+function the break lands in, so calls from that function are lost.
 
 What C does give, and no dynamic language does, is **a declared type on every
 local variable**: `struct connectdata *conn;` states what `conn` is. That goes
@@ -102,6 +114,11 @@ _DECLARATORS = _SPINE + ("field_identifier", "type_identifier")
 
 _TAGGED = ("struct_specifier", "union_specifier", "enum_specifier")
 
+# Everything `parse` knows how to read. Named once because recovery has to look
+# for the same things; see `_salvage`.
+_WANTED = ("preproc_include", "function_definition", "type_definition",
+           "declaration") + _TAGGED
+
 
 def _text(node, src: bytes) -> str:
     return src[node.start_byte:node.end_byte].decode("utf-8", "replace")
@@ -118,7 +135,8 @@ def _named(node, *types):
 
 
 def _declarations(node):
-    """Every declaration at this level, looking through `#if` / `#ifdef`.
+    """Every declaration at this level, looking through `#if` / `#ifdef` and
+    through the wreckage of a failed parse.
 
     Both branches of an `#ifdef` are read. The preprocessor picks one; we are
     building a map of what the source contains, and a Windows-only function is
@@ -128,9 +146,64 @@ def _declarations(node):
     for child in node.children:
         if child.type in _CONDITIONAL:
             out.extend(_declarations(child))
+        elif child.type == "ERROR":
+            out.extend(_salvage(child))
         else:
             out.append(child)
     return out
+
+
+def _salvage(node):
+    """The declarations still standing inside a recovery node.
+
+    A `#ifdef` may open a brace in one arm and close it in another. It is legal
+    C -- the preprocessor runs first and only one arm is ever compiled -- and
+    it is not parseable syntax, so the grammar gives up and flattens everything
+    after it into one ERROR. curl's `cf-haproxy.c:78` is the shape: `else {`
+    sits inside the `#ifdef USE_UNIX_SOCKETS` opened at line 74, and its `}` at
+    line 100 sits inside a second one.
+
+    The damage is not local. That one brace collapsed lines 26-241 into a
+    single ERROR child of the root, and since an ERROR is not a declaration,
+    the file arrived in the graph as nothing but its own file node. Measured on
+    curl, five `.c` files were empty for this reason -- `http.c` among them,
+    which defines 98 functions.
+
+    What survives inside the wreckage is still a well-formed subtree, just at
+    the wrong depth, so this reaches to any depth for the things `parse` reads.
+    It stops as soon as it finds one: descending INTO a recovered
+    `function_definition` would hand that function's local variables back as
+    file-scope declarations. The cost of reaching this deep is that a `struct`
+    or a `declaration` written inside a function body now reads as a file-level
+    one -- true of the wreckage only, and a type that exists in the file is a
+    smaller error than a file that reads as empty.
+    """
+    out = []
+    for child in node.children:
+        if child.type in _WANTED:
+            out.append(child)
+        elif child.type == "function_declarator":
+            # The header of a function the grammar could not assemble; see
+            # `_wrecked_function`. Descending into one instead would only reach
+            # its parameter list.
+            if _opens_a_body(child):
+                out.append(child)
+        else:
+            out.extend(_salvage(child))
+    return out
+
+
+def _opens_a_body(declarator) -> bool:
+    """True when a `{` follows a declarator, which makes it a definition.
+
+    This is the whole test that separates a wrecked definition from a
+    prototype, and it is the language's own: `void f(void);` ends in a
+    semicolon, `void f(void) {` does not.
+    """
+    sibling = declarator.next_sibling
+    while sibling is not None and sibling.type == "comment":
+        sibling = sibling.next_sibling
+    return sibling is not None and sibling.type == "{"
 
 
 def _declarator_name(node, src: bytes) -> str | None:
@@ -361,6 +434,10 @@ def parse(source: str, parsed: ParsedFile) -> bool:
             _include(node, src, parsed, own_dir)
         elif node.type == "function_definition":
             _function(node, src, reader)
+        elif node.type == "function_declarator":
+            # Only ever reached from `_salvage`; a well-formed tree puts a
+            # declarator inside a definition, never at this level.
+            _wrecked_function(node, src, reader)
         elif node.type == "type_definition":
             _typedef(node, src, reader, parsed)
         elif node.type in _TAGGED:
@@ -415,6 +492,26 @@ def _function(node, src: bytes, reader: _Reader) -> None:
     reader.local_types(node, name)
     if body is not None:
         reader.calls_in(body, nid)
+
+
+def _wrecked_function(node, src: bytes, reader: _Reader) -> None:
+    """A function whose header the grammar could not assemble into a definition.
+
+    `vtls/apple.c:81` arrives as a `CURLcode`, a `function_declarator` and a
+    `{`, lying loose in a recovery node because a `#ifdef` further down opens a
+    brace in one arm and closes it in another. It is the only function that
+    file defines, and without this rule the file has no function nodes at all.
+
+    The body is deliberately NOT read, and the cost is one-sided and real:
+    calls made from these functions have no caller and are not recorded. The
+    wreckage does not say where the body ends -- in `cf-haproxy.c` the run of
+    statements after the brace contains five more function definitions -- so
+    guessing a boundary would put other functions' calls on this one, which is
+    worse than recording none.
+    """
+    name = _declarator_name(node, src)
+    if name:
+        reader.emit(name, "function", node)
 
 
 def _typedef_names(node):

@@ -1,60 +1,55 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 10358,
-  "contains": 5172,
+  "calls": 10852,
+  "contains": 5548,
   "imports": 3080,
   "inherits": 399,
-  "rationale_for": 4063
+  "rationale_for": 4069
  },
- "edges_total": 23072,
- "edges_unresolved": 6819,
+ "edges_total": 23948,
+ "edges_unresolved": 7012,
  "files_failed": 0,
  "files_parsed": 753,
  "id_collisions": 0,
- "ids_unique": 9988,
+ "ids_unique": 10370,
  "nodes_by_kind": {
   "class": 546,
   "file": 753,
-  "function": 614,
+  "function": 990,
   "method": 4012,
-  "rationale": 4063
+  "rationale": 4069
  },
- "nodes_total": 9988,
+ "nodes_total": 10370,
  "refusals_by_reason": {
   "base class outside this corpus": 2,
-  "called on self, but no such method on the class": 526,
+  "called on self, but no such method on the class": 533,
   "imports a module outside this corpus": 134,
-  "name defined in 10 places, cannot choose": 1,
-  "name defined in 16 places, cannot choose": 7,
-  "name defined in 2 places, cannot choose": 46,
+  "name defined in 10 places, cannot choose": 11,
+  "name defined in 2 places, cannot choose": 12,
+  "name defined in 2 scopes of this file, cannot choose": 6,
   "name defined in 3 places, cannot choose": 2,
-  "name defined in 31 places, cannot choose": 1,
   "name defined in 4 places, cannot choose": 35,
-  "name defined in 49 places, cannot choose": 1,
   "name defined in 5 places, cannot choose": 1,
-  "name defined in 6 places, cannot choose": 12,
-  "name defined in 7 places, cannot choose": 1,
-  "name defined in 8 places, cannot choose": 2,
-  "name defined in 9 places, cannot choose": 11,
-  "not defined in this corpus (builtin or third party)": 1432,
+  "name defined in 6 places, cannot choose": 6,
+  "not defined in this corpus (builtin or third party)": 984,
   "python builtin": 132,
-  "receiver is a self attribute of unknown type": 1027,
-  "receiver type unknown": 8727,
+  "receiver is a self attribute of unknown type": 1031,
+  "receiver type unknown": 8729,
   "receiver typed, but no such method in the corpus": 218
  },
  "resolved_by_rule": {
   "base class in corpus": 397,
-  "imported": 1317,
+  "imported": 1364,
   "module in corpus": 2946,
-  "receiver-typed": 150,
-  "same file": 489,
-  "self-attribute-typed": 275,
-  "self-method": 1369,
-  "unique in corpus": 75
+  "receiver-typed": 157,
+  "same file": 757,
+  "self-attribute-typed": 271,
+  "self-method": 1367,
+  "unique in corpus": 60
  },
  "shape": {
-  "groups": 53,
+  "groups": 49,
   "ungrouped": 130
  }
 }
