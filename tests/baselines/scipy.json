@@ -2,29 +2,29 @@
  "dangling_edges": 0,
  "edges_by_relation": {
   "calls": 81002,
-  "contains": 25042,
-  "imports": 5112,
+  "contains": 25050,
+  "imports": 5122,
   "inherits": 844,
   "rationale_for": 5026
  },
- "edges_total": 117026,
- "edges_unresolved": 61816,
+ "edges_total": 117044,
+ "edges_unresolved": 61826,
  "files_failed": 0,
- "files_parsed": 961,
+ "files_parsed": 965,
  "id_collisions": 204,
- "ids_unique": 30751,
+ "ids_unique": 30763,
  "nodes_by_kind": {
-  "class": 2198,
-  "file": 961,
+  "class": 2206,
+  "file": 965,
   "function": 8558,
   "method": 14286,
   "rationale": 5026
  },
- "nodes_total": 31029,
+ "nodes_total": 31041,
  "refusals_by_reason": {
   "base class outside this corpus": 129,
   "called on self, but no such method on the class": 1627,
-  "imports a module outside this corpus": 4118,
+  "imports a module outside this corpus": 4128,
   "name defined in 10 places, cannot choose": 7,
   "name defined in 10 scopes of this file, cannot choose": 15,
   "name defined in 105 places, cannot choose": 3,
@@ -110,7 +110,7 @@
   "unique in corpus": 8278
  },
  "shape": {
-  "groups": 95,
-  "ungrouped": 56
+  "groups": 93,
+  "ungrouped": 59
  }
 }

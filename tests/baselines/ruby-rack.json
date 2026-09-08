@@ -1,0 +1,51 @@
+{
+ "dangling_edges": 0,
+ "edges_by_relation": {
+  "calls": 1087,
+  "contains": 769,
+  "imports": 114,
+  "inherits": 39,
+  "rationale_for": 215
+ },
+ "edges_total": 2224,
+ "edges_unresolved": 763,
+ "files_failed": 0,
+ "files_parsed": 50,
+ "id_collisions": 5,
+ "ids_unique": 1029,
+ "nodes_by_kind": {
+  "class": 144,
+  "file": 50,
+  "method": 625,
+  "rationale": 215
+ },
+ "nodes_total": 1034,
+ "refusals_by_reason": {
+  "base class outside this corpus": 16,
+  "called on self, but no such method on the class": 17,
+  "imports a module outside this corpus": 28,
+  "name defined in 10 places, cannot choose": 3,
+  "name defined in 2 places, cannot choose": 24,
+  "name defined in 3 places, cannot choose": 91,
+  "name defined in 34 places, cannot choose": 1,
+  "not defined in this corpus (builtin or third party)": 280,
+  "python builtin": 14,
+  "receiver is a self attribute of unknown type": 207,
+  "receiver type unknown": 925,
+  "receiver typed, but no such method in the corpus": 204
+ },
+ "resolved_by_rule": {
+  "base class in corpus": 23,
+  "imported": 21,
+  "module in corpus": 86,
+  "receiver-typed": 45,
+  "same file": 20,
+  "self-attribute-typed": 6,
+  "self-method": 114,
+  "unique in corpus": 162
+ },
+ "shape": {
+  "groups": 20,
+  "ungrouped": 0
+ }
+}

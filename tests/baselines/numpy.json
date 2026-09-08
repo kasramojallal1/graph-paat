@@ -1,30 +1,30 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 48092,
-  "contains": 11944,
-  "imports": 2178,
+  "calls": 48228,
+  "contains": 12371,
+  "imports": 2258,
   "inherits": 578,
-  "rationale_for": 2454
+  "rationale_for": 2538
  },
- "edges_total": 65246,
- "edges_unresolved": 40722,
+ "edges_total": 65973,
+ "edges_unresolved": 40837,
  "files_failed": 0,
- "files_parsed": 409,
- "id_collisions": 26,
- "ids_unique": 14780,
+ "files_parsed": 444,
+ "id_collisions": 76,
+ "ids_unique": 15212,
  "nodes_by_kind": {
-  "class": 1488,
-  "file": 409,
-  "function": 3242,
+  "class": 1767,
+  "file": 444,
+  "function": 3390,
   "method": 7214,
-  "rationale": 2454
+  "rationale": 2538
  },
- "nodes_total": 14807,
+ "nodes_total": 15353,
  "refusals_by_reason": {
   "base class outside this corpus": 224,
   "called on self, but no such method on the class": 1109,
-  "imports a module outside this corpus": 1865,
+  "imports a module outside this corpus": 1925,
   "name defined in 119 places, cannot choose": 16,
   "name defined in 12 places, cannot choose": 5,
   "name defined in 13 places, cannot choose": 1,
@@ -42,7 +42,7 @@
   "name defined in 26 places, cannot choose": 2,
   "name defined in 27 places, cannot choose": 1,
   "name defined in 3 places, cannot choose": 3763,
-  "name defined in 3 scopes of this file, cannot choose": 50,
+  "name defined in 3 scopes of this file, cannot choose": 99,
   "name defined in 32 places, cannot choose": 1,
   "name defined in 36 places, cannot choose": 6,
   "name defined in 38 places, cannot choose": 16,
@@ -57,24 +57,24 @@
   "name defined in 8 places, cannot choose": 7,
   "name defined in 9 places, cannot choose": 5,
   "name defined in 97 places, cannot choose": 1,
-  "not defined in this corpus (builtin or third party)": 5884,
+  "not defined in this corpus (builtin or third party)": 6331,
   "python builtin": 10306,
   "receiver is a self attribute of unknown type": 619,
-  "receiver type unknown": 29792,
-  "receiver typed, but no such method in the corpus": 2669
+  "receiver type unknown": 29801,
+  "receiver typed, but no such method in the corpus": 2672
  },
  "resolved_by_rule": {
   "base class in corpus": 354,
   "imported": 1728,
-  "module in corpus": 313,
+  "module in corpus": 333,
   "receiver-typed": 17,
-  "same file": 2709,
+  "same file": 2755,
   "self-attribute-typed": 20,
   "self-method": 811,
-  "unique in corpus": 4174
+  "unique in corpus": 4209
  },
  "shape": {
-  "groups": 122,
-  "ungrouped": 38
+  "groups": 135,
+  "ungrouped": 44
  }
 }

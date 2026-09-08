@@ -3,28 +3,28 @@
  "edges_by_relation": {
   "calls": 1462,
   "contains": 1179,
-  "imports": 1067,
+  "imports": 1068,
   "inherits": 132,
   "rationale_for": 310
  },
- "edges_total": 4150,
- "edges_unresolved": 1121,
+ "edges_total": 4151,
+ "edges_unresolved": 1122,
  "files_failed": 0,
- "files_parsed": 673,
+ "files_parsed": 674,
  "id_collisions": 4,
- "ids_unique": 2158,
+ "ids_unique": 2159,
  "nodes_by_kind": {
   "class": 294,
-  "file": 673,
+  "file": 674,
   "function": 214,
   "method": 671,
   "rationale": 310
  },
- "nodes_total": 2162,
+ "nodes_total": 2163,
  "refusals_by_reason": {
   "base class outside this corpus": 10,
   "called on self, but no such method on the class": 141,
-  "imports a module outside this corpus": 324,
+  "imports a module outside this corpus": 325,
   "name defined in 10 places, cannot choose": 3,
   "name defined in 13 places, cannot choose": 3,
   "name defined in 2 places, cannot choose": 32,
@@ -54,7 +54,7 @@
   "unique in corpus": 292
  },
  "shape": {
-  "groups": 27,
-  "ungrouped": 258
+  "groups": 25,
+  "ungrouped": 259
  }
 }

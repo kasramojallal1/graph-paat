@@ -1,0 +1,67 @@
+{
+ "dangling_edges": 0,
+ "edges_by_relation": {
+  "calls": 9429,
+  "contains": 4435,
+  "imports": 2090,
+  "inherits": 624,
+  "rationale_for": 1971
+ },
+ "edges_total": 18549,
+ "edges_unresolved": 9319,
+ "files_failed": 0,
+ "files_parsed": 377,
+ "id_collisions": 91,
+ "ids_unique": 6669,
+ "nodes_by_kind": {
+  "class": 589,
+  "file": 377,
+  "function": 776,
+  "method": 3070,
+  "rationale": 1971
+ },
+ "nodes_total": 6783,
+ "refusals_by_reason": {
+  "base class outside this corpus": 507,
+  "called on self, but no such method on the class": 156,
+  "imports a module outside this corpus": 1638,
+  "name defined in 10 places, cannot choose": 94,
+  "name defined in 11 places, cannot choose": 202,
+  "name defined in 12 places, cannot choose": 1,
+  "name defined in 13 places, cannot choose": 5,
+  "name defined in 14 places, cannot choose": 27,
+  "name defined in 175 places, cannot choose": 10,
+  "name defined in 19 places, cannot choose": 129,
+  "name defined in 2 places, cannot choose": 63,
+  "name defined in 2 scopes of this file, cannot choose": 6,
+  "name defined in 23 places, cannot choose": 1,
+  "name defined in 3 places, cannot choose": 48,
+  "name defined in 34 places, cannot choose": 4,
+  "name defined in 4 places, cannot choose": 45,
+  "name defined in 5 places, cannot choose": 86,
+  "name defined in 6 places, cannot choose": 34,
+  "name defined in 7 places, cannot choose": 1,
+  "name defined in 8 places, cannot choose": 61,
+  "name defined in 82 places, cannot choose": 192,
+  "name defined in 9 places, cannot choose": 18,
+  "not defined in this corpus (builtin or third party)": 1941,
+  "python builtin": 25,
+  "receiver is a self attribute of unknown type": 1128,
+  "receiver type unknown": 5063,
+  "receiver typed, but no such method in the corpus": 2281
+ },
+ "resolved_by_rule": {
+  "base class in corpus": 117,
+  "imported": 43,
+  "module in corpus": 452,
+  "receiver-typed": 677,
+  "same file": 532,
+  "self-attribute-typed": 221,
+  "self-method": 572,
+  "unique in corpus": 210
+ },
+ "shape": {
+  "groups": 63,
+  "ungrouped": 6
+ }
+}

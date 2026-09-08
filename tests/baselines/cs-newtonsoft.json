@@ -1,0 +1,65 @@
+{
+ "dangling_edges": 0,
+ "edges_by_relation": {
+  "calls": 8063,
+  "contains": 3747,
+  "imports": 1056,
+  "inherits": 207,
+  "rationale_for": 1435
+ },
+ "edges_total": 14508,
+ "edges_unresolved": 7585,
+ "files_failed": 0,
+ "files_parsed": 240,
+ "id_collisions": 419,
+ "ids_unique": 4251,
+ "nodes_by_kind": {
+  "class": 350,
+  "file": 240,
+  "function": 59,
+  "method": 3338,
+  "rationale": 1435
+ },
+ "nodes_total": 5422,
+ "refusals_by_reason": {
+  "base class outside this corpus": 104,
+  "imports a module outside this corpus": 1011,
+  "name defined in 10 places, cannot choose": 22,
+  "name defined in 11 places, cannot choose": 6,
+  "name defined in 12 places, cannot choose": 8,
+  "name defined in 13 places, cannot choose": 4,
+  "name defined in 142 places, cannot choose": 69,
+  "name defined in 15 places, cannot choose": 2,
+  "name defined in 16 places, cannot choose": 23,
+  "name defined in 19 places, cannot choose": 59,
+  "name defined in 2 places, cannot choose": 625,
+  "name defined in 20 places, cannot choose": 2,
+  "name defined in 23 places, cannot choose": 8,
+  "name defined in 24 places, cannot choose": 31,
+  "name defined in 3 places, cannot choose": 181,
+  "name defined in 4 places, cannot choose": 285,
+  "name defined in 47 places, cannot choose": 33,
+  "name defined in 5 places, cannot choose": 145,
+  "name defined in 5 scopes of this file, cannot choose": 2,
+  "name defined in 6 places, cannot choose": 57,
+  "name defined in 7 places, cannot choose": 39,
+  "name defined in 8 places, cannot choose": 45,
+  "name defined in 81 places, cannot choose": 21,
+  "name defined in 9 places, cannot choose": 40,
+  "not defined in this corpus (builtin or third party)": 971,
+  "python builtin": 10,
+  "receiver type unknown": 3554,
+  "receiver typed, but no such method in the corpus": 2290
+ },
+ "resolved_by_rule": {
+  "base class in corpus": 103,
+  "module in corpus": 45,
+  "receiver-typed": 161,
+  "same file": 112,
+  "unique in corpus": 1320
+ },
+ "shape": {
+  "groups": 118,
+  "ungrouped": 1
+ }
+}

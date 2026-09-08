@@ -1,30 +1,30 @@
 {
  "dangling_edges": 0,
  "edges_by_relation": {
-  "calls": 17276,
-  "contains": 10959,
-  "imports": 4055,
-  "inherits": 1782,
+  "calls": 17290,
+  "contains": 10974,
+  "imports": 4289,
+  "inherits": 1783,
   "rationale_for": 3871
  },
- "edges_total": 37943,
- "edges_unresolved": 12711,
+ "edges_total": 38207,
+ "edges_unresolved": 12954,
  "files_failed": 0,
- "files_parsed": 879,
+ "files_parsed": 966,
  "id_collisions": 54,
- "ids_unique": 15653,
+ "ids_unique": 15755,
  "nodes_by_kind": {
-  "class": 1910,
-  "file": 879,
-  "function": 1455,
-  "method": 7594,
+  "class": 1912,
+  "file": 966,
+  "function": 1459,
+  "method": 7603,
   "rationale": 3871
  },
- "nodes_total": 15709,
+ "nodes_total": 15811,
  "refusals_by_reason": {
-  "base class outside this corpus": 280,
+  "base class outside this corpus": 281,
   "called on self, but no such method on the class": 1301,
-  "imports a module outside this corpus": 2203,
+  "imports a module outside this corpus": 2437,
   "name defined in 10 places, cannot choose": 66,
   "name defined in 11 places, cannot choose": 76,
   "name defined in 12 places, cannot choose": 55,
@@ -72,8 +72,8 @@
   "name defined in 91 places, cannot choose": 4,
   "not defined in this corpus (builtin or third party)": 2164,
   "python builtin": 8428,
-  "receiver is a self attribute of unknown type": 1633,
-  "receiver type unknown": 8150,
+  "receiver is a self attribute of unknown type": 1646,
+  "receiver type unknown": 8216,
   "receiver typed, but no such method in the corpus": 316
  },
  "resolved_by_rule": {
@@ -81,13 +81,13 @@
   "imported": 1688,
   "module in corpus": 1852,
   "receiver-typed": 219,
-  "same file": 1339,
+  "same file": 1340,
   "self-attribute-typed": 57,
-  "self-method": 2853,
+  "self-method": 2858,
   "unique in corpus": 892
  },
  "shape": {
-  "groups": 80,
-  "ungrouped": 234
+  "groups": 85,
+  "ungrouped": 319
  }
 }

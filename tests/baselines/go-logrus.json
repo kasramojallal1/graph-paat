@@ -10,25 +10,25 @@
  "edges_total": 1559,
  "edges_unresolved": 640,
  "files_failed": 0,
- "files_parsed": 44,
+ "files_parsed": 46,
  "id_collisions": 1,
- "ids_unique": 570,
+ "ids_unique": 572,
  "nodes_by_kind": {
   "class": 32,
-  "file": 44,
+  "file": 46,
   "function": 213,
   "method": 154,
   "rationale": 128
  },
- "nodes_total": 571,
+ "nodes_total": 573,
  "refusals_by_reason": {
   "called on self, but no such method on the class": 9,
   "imports a module outside this corpus": 167,
   "name defined in 2 places, cannot choose": 31,
   "name defined in 3 places, cannot choose": 64,
   "name defined in 4 places, cannot choose": 2,
-  "not defined in this corpus (builtin or third party)": 190,
-  "python builtin": 48,
+  "not defined in this corpus (builtin or third party)": 194,
+  "python builtin": 49,
   "receiver type unknown": 714,
   "receiver typed, but no such method in the corpus": 200
  },
@@ -42,6 +42,6 @@
  },
  "shape": {
   "groups": 20,
-  "ungrouped": 1
+  "ungrouped": 3
  }
 }
