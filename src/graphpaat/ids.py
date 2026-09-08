@@ -54,7 +54,7 @@ def normalise_path_part(part: str) -> str:
     return part.strip("_").lower()
 
 
-def file_prefix(path: Path, root: Path) -> str:
+def file_prefix(path: Path, root: Path, keep_extension: bool = False) -> str:
     """The id prefix for a file: its path relative to root.
 
         graphify/affected.py          -> affected
@@ -66,9 +66,26 @@ def file_prefix(path: Path, root: Path) -> str:
     `a/utils.py` and `b/utils.py` from minting the same ids. The L4 rebuild used
     the filename alone and that single mistake accounted for most of its
     disagreement with graphify.
+
+    `keep_extension` keeps the extension as a final segment:
+
+        lib/url.c -> lib_url_c
+        lib/url.h -> lib_url_h
+
+    Dropping the extension assumes one file per name, and that assumption holds
+    for most languages. Where a language pairs a definition file with a
+    declaration file of the same name it is simply false, and the cost is not
+    small: measured 2026-09-07, curl's `lib/` loses **159 of 385 files** to a
+    name two files claim, and redis `src/` loses 67 of 218. A third of the
+    corpus would arrive as duplicate nodes sharing one id.
+
+    A language module states this about itself (`KEEP_EXTENSION = True`) rather
+    than being named here, so nothing outside `languages/` learns which
+    languages those are.
     """
     parts = list(path.relative_to(root).parts)
-    parts[-1] = Path(parts[-1]).stem
+    name = Path(parts[-1])
+    parts[-1] = f"{name.stem}_{name.suffix.lstrip('.')}" if keep_extension else name.stem
     return "_".join(normalise_path_part(p) for p in parts)
 
 

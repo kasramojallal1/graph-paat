@@ -120,8 +120,13 @@ def parse_file(path: Path, root: Path) -> ParsedFile | None:
     except OSError:
         return None
 
-    parsed = ParsedFile(path=str(path.relative_to(root)),
-                        prefix=file_prefix(path, root))
+    # A language may state that the extension is part of a file's identity --
+    # C's `url.c` and `url.h` are two files, not one. The default is off and
+    # nothing here knows which languages set it.
+    parsed = ParsedFile(
+        path=str(path.relative_to(root)),
+        prefix=file_prefix(path, root,
+                           keep_extension=getattr(language, "KEEP_EXTENSION", False)))
     # A node for the file itself, so "what is in this file" is a graph question
     # rather than a filesystem one.
     parsed.nodes.append(Node(
