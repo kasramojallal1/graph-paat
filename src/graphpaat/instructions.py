@@ -86,7 +86,7 @@ Every line ends with where it came from, and the difference matters:
 - `[class \u00b7 read from code]` -- a parser verified this, this build.
 - `[claim \u00b7 read from code]` -- a docstring: what the code says about itself.
 - `[claim \u00b7 from a document]` -- a sentence from a README or a manual. It
-  may have been true when it was written. Treat it as a lead and check it.
+  may have been true once. A claim is a lead, not a fact -- check it.
 
 - Every line gives `file:line`. Open only those files.
 - `?name` is a call that could not be resolved, with the reason. A missing edge
@@ -96,23 +96,12 @@ Every line ends with where it came from, and the difference matters:
 - Answer looks wrong? Go back to step 1 and pick different words. That is
   almost always where it went wrong.
 
-### Optional: read the repository's prose too
+### Optional: `--deep` also reads the repo's documents
 
-`graph-paat build . --deep` also reads `.md`, `.rst`, `.txt` and PDF files and
-attaches what they say to the symbols they describe. It takes two runs, because
-the tool has no model of its own -- you are the model:
-
-1. `graph-paat build . --deep` writes `graph-paat-out/documents-to-read.md`.
-2. Read that file. For each passage, pick the symbols it describes **from that
-   passage's own candidate list**, copying ids exactly. Never write an id that
-   is not on the list -- it is rejected, not created. `[]` is a common and
-   correct answer. Write `graph-paat-out/document-answers.json` as that file
-   describes.
-3. Run the same command again to fold the answers in.
-
-Worth it on a repository whose names are opaque but whose docs are good. It
-costs one pass over the prose, and the first run tells you how many tokens that
-is before you spend them.
+`graph-paat build . --deep` writes the passages needing a reader, you answer
+them in a JSON file, a second run folds them in -- the tool has no model, you
+are the model. It prints the exact steps and what the reading will cost. Worth
+it where the names are opaque but the docs are good.
 
 `--budget N` caps answer size; `--per-node N` caps links per symbol. The graph
 lands in `graph-paat-out/`; add it to `.gitignore` and rebuild freely.

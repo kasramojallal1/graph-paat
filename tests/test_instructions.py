@@ -16,12 +16,29 @@ class TestBlock:
     def test_explains_how_to_read_the_output_not_just_how_to_run_it(self):
         # A map that marks claims and gaps is only useful to a reader told what
         # the marks mean.
-        for mark in ("[claim]", "?name", "(hub)", "vocab", "file:line"):
+        for mark in ("[claim \u00b7 from a document]", "?name", "(hub)", "vocab",
+                     "file:line"):
             assert mark in INSTRUCTIONS
+
+    def test_says_a_claim_from_a_document_is_not_a_verified_fact(self):
+        """The one thing an agent must not get wrong about the deep lane.
+
+        Unexplained, a five-year-old README sentence reads as something the
+        parser checked today -- which is the exact mistake the provenance tags
+        exist to prevent, so the text has to spend a line on it.
+        """
+        assert "read from code" in INSTRUCTIONS
+        assert "may have been true once" in INSTRUCTIONS
 
     def test_stays_small_enough_to_carry_on_every_turn(self):
         # It is loaded into an assistant's context constantly.
-        assert len(INSTRUCTIONS) < 2200, "instructions are getting expensive"
+        #
+        # Raised from 2,200 on 2026-09-09, and the increase is the whole cost of
+        # the document lane in an agent's context: four lines saying `--deep`
+        # exists, and three explaining what a provenance tag means. The tool
+        # prints the full two-step procedure itself on the first run, so none of
+        # that is carried here.
+        assert len(INSTRUCTIONS) < 2700, "instructions are getting expensive"
 
 
 class TestMerge:
