@@ -33,7 +33,10 @@ graph-paat = "graphpaat.cli:main"
 packages = ["src/graphpaat"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "pypdf>=4"]
+# Reading a PDF needs a PDF library. A repository with no PDFs should not have
+# to carry one, so it is an extra exactly like the tree-sitter grammars.
+pdf = ["pypdf>=4"]
 go = ["tree-sitter>=0.21", "tree-sitter-go>=0.21"]
 typescript = ["tree-sitter>=0.21", "tree-sitter-typescript>=0.21"]
 javascript = ["tree-sitter>=0.21", "tree-sitter-javascript>=0.21"]
