@@ -42,17 +42,21 @@ from .documents import DOC_MARK, Reading, Section
 from .ids import normalise_path_part
 from .parse import Edge, Node
 
-# How many names one section may choose from -- and, above it, the point at
-# which a section stops being an explanation.
-#
-# Measured 2026-09-09 on sympy: the median section mentions 6 symbols already in
-# the graph, but 47% mention more and the worst mentions 45. A passage naming 45
-# symbols is an API index, and an index explains none of them -- the ask below
-# already tells the model to answer `[]` when more than three fit, so putting
-# those passages in front of it buys nothing and costs 140,000 tokens. They are
-# skipped, and counted, rather than truncated into a menu of plausible wrong
-# answers.
+# How many names one section may choose from.
 MAX_CANDIDATES = 12
+
+# Above this many distinct real symbols, a passage is an API index or a
+# reference table, and an index explains none of what it lists. Those never
+# reach the model: the ask already tells it to answer `[]` when more than three
+# symbols fit, so showing them costs tokens to be told nothing.
+#
+# **Why this is not simply MAX_CANDIDATES.** It was, and one threshold behaved
+# completely differently on two real repositories: at 12 it dropped 8% of
+# graphify's passages and 44% of sympy's, because sympy documents mathematics
+# and names far more symbols per page. Dropping 44% would have thrown away real
+# explanations. So the menu is *ranked and truncated* in the ordinary case, and
+# only a genuine index is dropped.
+INDEX_MENTIONS = 30
 
 # A name shorter than this matches too much prose to mean anything: `id`, `of`
 # and `to` are all real symbol names somewhere.
@@ -63,8 +67,34 @@ MIN_NAME_CHARS = 4
 ASK_SECTION_CHARS = 700
 
 # Things that look like identifiers when they appear in prose.
-_BACKTICKED = re.compile(r"`{1,3}([^`\n]{2,120})`{1,3}")
+#
+# Three separate readers, because a project writes a symbol name three ways and
+# missing any one of them loses the passages that matter most. Found 2026-09-09
+# by the independent checker, not by any test here: graphify's ARCHITECTURE.md
+# describes its whole pipeline as `detect() -> extract() -> build() ->
+# cluster()` inside a fenced block, and NONE of those four names reached the
+# candidate list. A single-line backtick rule cannot see inside a fence, and a
+# bare lowercase word is not CamelCase or snake_case so the prose rule dropped
+# it too. The passage most about the codebase was the one we could not read.
+_FENCED = re.compile(r"```[^\n]*\n(.*?)```", re.S)
+_BACKTICKED = re.compile(r"`([^`\n]{2,120})`")
 _IDENTIFIER = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\b")
+# `detect()` in running prose is a function reference and nothing else. The
+# parentheses are what make a bare lowercase word safe to take.
+_CALLED = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+# How many tokens of reading the model is asked to do, per repository.
+#
+# The prose budget caps what is *read off disk*; this caps what is *put to the
+# model*, and they are different numbers because a passage costs its own text
+# plus a menu of candidates. Measured 2026-09-09: sympy's uncapped ask is
+# 363,000 tokens, which is more than most agents will spend on a whole session.
+#
+# Passages are spent strongest-first -- the ones whose subject is named in the
+# heading or the running prose, before the ones that only appear in a code
+# example -- and whatever the cap excluded is printed. A silent cap reads as
+# full coverage.
+DEFAULT_ASK_TOKENS = 120_000
 
 ASK_FILE = "documents-to-read.md"
 ANSWER_FILE = "document-answers.json"
@@ -79,6 +109,8 @@ class Ask:
     sections: int
     tokens: int
     skipped_as_index: int = 0
+    skipped_over_budget: int = 0
+    tokens_over_budget: int = 0
 
 
 def claim_id(doc_path: str, line: int) -> str:
@@ -97,34 +129,70 @@ def document_id(doc_path: str) -> str:
     return f"{stem}{DOC_MARK}"
 
 
-def mentioned(text: str) -> set[str]:
-    """Every name a section mentions, lowercased.
+def mentioned(text: str, title: str = "") -> dict[str, int]:
+    """Every name a passage mentions, lowercased, and how strongly.
 
-    Backticked spans first, because a project that writes `Console` in backticks
-    is telling you it means the symbol. Bare identifiers in the prose count too:
-    plenty of documentation writes CamelCase without any markup at all.
+    The strength is what makes the menu worth reading. A symbol named in the
+    passage's own heading is almost certainly its subject; one written as a call
+    or in backticks in the running prose is probably relevant; one that appears
+    only inside a code example is often just a step in a recipe. Ranking by that
+    and keeping the top handful beats truncating an unordered list, which is how
+    a model gets handed a menu of plausible wrong answers.
+
+    **What is deliberately not counted: a bare English word in the prose.** An
+    earlier version took every four-letter identifier it found outside a code
+    block, which made "documentation", "provides" and "changes" into mentions --
+    and every passage in both test repositories then had a strong mention of
+    something. Only shapes an author cannot write by accident count: marked as
+    code, written as a call, or spelled in CamelCase or snake_case.
     """
-    names: set[str] = set()
-    for span in _BACKTICKED.findall(text):
-        # `Console.print(x)` mentions Console and print, and `pip install x`
-        # mentions nothing -- both fall out of splitting on non-identifier
-        # characters and keeping what survives.
+    names: dict[str, int] = {}
+
+    def note(word: str, weight: int) -> None:
+        if len(word) >= MIN_NAME_CHARS:
+            key = word.lower()
+            names[key] = max(names.get(key, 0), weight)
+
+    def every_identifier(span: str, weight: int) -> None:
+        """Inside code, every identifier is an identifier."""
         for piece in _IDENTIFIER.findall(span):
             for part in piece.split("."):
-                if len(part) >= MIN_NAME_CHARS:
-                    names.add(part.lower())
-    for piece in _IDENTIFIER.findall(text):
-        # Bare prose is noisier than a code span, so only shapes that a person
-        # would not write by accident count: CamelCase, or snake_case.
-        if len(piece) < MIN_NAME_CHARS:
-            continue
-        for part in piece.split("."):
-            if len(part) < MIN_NAME_CHARS:
-                continue
-            camel = any(c.isupper() for c in part[1:]) and not part.isupper()
-            snake = "_" in part.strip("_")
-            if camel or snake:
-                names.add(part.lower())
+                note(part, weight)
+
+    def code_shaped(span: str, weight: int) -> None:
+        """In prose, only what an author could not have typed by accident."""
+        for piece in _CALLED.findall(span):
+            note(piece, weight)
+        for piece in _IDENTIFIER.findall(span):
+            for part in piece.split("."):
+                if len(part) < MIN_NAME_CHARS:
+                    continue
+                # A capital letter or an underscore. `Parser` and `QuerySet`
+                # are class names wherever they appear; a lowercase word in
+                # running prose is just a word, and `build` or `report` would
+                # otherwise match a symbol on every page that used them.
+                capital = part[0].isupper() and not part.isupper()
+                camel = any(c.isupper() for c in part[1:]) and not part.isupper()
+                snake = "_" in part.strip("_")
+                if capital or camel or snake:
+                    note(part, weight)
+
+    prose = _FENCED.sub(" ", text)
+
+    # The heading is the strongest statement a passage makes about its subject,
+    # and it is short and deliberate -- so every word in it counts, including a
+    # bare lowercase one. A section titled `detect` is about detect.
+    every_identifier(title, 4)
+
+    # Running prose: backticks are the author saying "I mean the symbol".
+    for span in _BACKTICKED.findall(prose):
+        every_identifier(span, 3)
+    code_shaped(prose, 3)
+
+    # A fenced block is marked as code, but it is an example -- the names in it
+    # are being *used*, which is weaker evidence than being talked about.
+    for span in _FENCED.findall(text):
+        every_identifier(span, 1)
     return names
 
 
@@ -162,25 +230,35 @@ def label_index(graph: dict) -> dict[str, list[str]]:
 
 
 def candidates(section_text: str, index: dict[str, list[str]],
-               limit: int = MAX_CANDIDATES) -> list[str]:
+               limit: int = MAX_CANDIDATES, title: str = "") -> list[str]:
     """The closed list for one section. Deterministic, and possibly empty.
 
     Empty is a real answer, and it arrives two ways. A section mentioning
     nothing in the graph is prose about installation or licensing. A section
-    mentioning *more than the limit* is an index or a reference table, which
-    describes nothing in particular; both should stay away from the model.
+    mentioning more real symbols than `INDEX_MENTIONS` is a reference table,
+    which describes nothing in particular. Both should stay away from the model.
+
+    In between, the list is ranked by how strongly the passage names each symbol
+    and cut to `limit` -- heading first, then running prose, then code examples.
     """
+    scored = mentioned(section_text, title)
+    real = {name: weight for name, weight in scored.items() if name in index}
+    if len(real) > INDEX_MENTIONS:
+        return []
     picked: list[str] = []
     seen: set[str] = set()
-    for name in sorted(mentioned(section_text)):
+    # Strongest mention first, then alphabetically -- a fixed order, so the same
+    # passage always produces the same menu.
+    for name in sorted(real, key=lambda n: (-real[n], n)):
         for nid in index.get(name, []):
             if nid not in seen:
                 seen.add(nid)
                 picked.append(nid)
-    return [] if len(picked) > limit else picked
+    return picked[:limit]
 
 
-def build_ask(reading: Reading, graph: dict) -> Ask:
+def build_ask(reading: Reading, graph: dict,
+              budget_tokens: int = DEFAULT_ASK_TOKENS) -> Ask:
     """The file the assistant is asked to read.
 
     Only sections that mention something already in the graph are included.
@@ -191,30 +269,54 @@ def build_ask(reading: Reading, graph: dict) -> Ask:
     index = label_index(graph)
     by_id = {n["id"]: n for n in graph["nodes"]}
 
-    manifest: dict[str, dict] = {}
-    blocks: list[str] = []
+    # Everything worth asking, carrying the strength of its best mention -- so
+    # the budget below buys the passages most likely to be describing something
+    # rather than whichever ones happen to come first in the tree.
+    ready: list[tuple[int, int, str, dict]] = []
     skipped_as_index = 0
-    for doc in reading.documents:
-        for section in doc.sections:
-            options = candidates(section.text, index)
-            if not options:
-                if len(candidates(section.text, index, limit=10 ** 6)) > MAX_CANDIDATES:
-                    skipped_as_index += 1
-                continue
-            cid = claim_id(doc.path, section.line)
-            manifest[cid] = {"candidates": options, "path": doc.path,
-                             "line": section.line, "title": section.title}
-            body = " ".join(section.text.split())[:ASK_SECTION_CHARS]
-            head = f"### {cid}"
-            if section.title:
-                head += f"  —  {section.title}"
-            lines = [head, f"`{doc.path}:L{section.line}`", "", f"> {body}", "",
-                     "Candidates:"]
-            for nid in options:
-                node = by_id[nid]
-                lines.append(f"- `{nid}`  —  {node['label']}  "
-                             f"({node['kind']}, {node['file']}:L{node['line']})")
-            blocks.append("\n".join(lines))
+    pairs = [(d, s) for d in reading.documents for s in d.sections]
+    for order, (doc, section) in enumerate(pairs):
+        scored = mentioned(section.text, section.title)
+        real = {n: w for n, w in scored.items() if n in index}
+        options = candidates(section.text, index, title=section.title)
+        if not options:
+            if len(real) > INDEX_MENTIONS:
+                skipped_as_index += 1
+            continue
+        ready.append((-max(real.values()), order,
+                      claim_id(doc.path, section.line),
+                      {"candidates": options, "path": doc.path,
+                       "line": section.line, "title": section.title,
+                       "text": section.text}))
+    ready.sort(key=lambda row: (row[0], row[1]))
+
+    manifest: dict[str, dict] = {}
+    kept: list[tuple[int, str]] = []
+    spent = skipped_over_budget = tokens_over_budget = 0
+    for _strength, order, cid, entry in ready:
+        body = " ".join(entry["text"].split())[:ASK_SECTION_CHARS]
+        head = f"### {cid}"
+        if entry["title"]:
+            head += f"  —  {entry['title']}"
+        lines = [head, f"`{entry['path']}:L{entry['line']}`", "", f"> {body}", "",
+                 "Candidates:"]
+        for nid in entry["candidates"]:
+            node = by_id[nid]
+            lines.append(f"- `{nid}`  —  {node['label']}  "
+                         f"({node['kind']}, {node['file']}:L{node['line']})")
+        block = "\n".join(lines)
+        cost = max(1, len(block) // 4)
+        if spent + cost > budget_tokens:
+            skipped_over_budget += 1
+            tokens_over_budget += cost
+            continue
+        spent += cost
+        manifest[cid] = {k: v for k, v in entry.items() if k != "text"}
+        kept.append((order, block))
+
+    # Back into document order, so the file reads like the repository does.
+    kept.sort()
+    blocks = [block for _order, block in kept]
 
     text = _ask_header(len(blocks)) + "\n\n" + "\n\n---\n\n".join(blocks) + "\n"
     digest = hashlib.sha256(
@@ -222,7 +324,9 @@ def build_ask(reading: Reading, graph: dict) -> Ask:
     text = text.replace("__DIGEST__", digest)
     return Ask(text=text, manifest=manifest, digest=digest,
                sections=len(blocks), tokens=max(1, len(text) // 4),
-               skipped_as_index=skipped_as_index)
+               skipped_as_index=skipped_as_index,
+               skipped_over_budget=skipped_over_budget,
+               tokens_over_budget=tokens_over_budget)
 
 
 def _ask_header(count: int) -> str:

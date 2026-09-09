@@ -101,21 +101,67 @@ def test_a_passage_naming_nothing_is_never_put_to_the_model(prepared):
     assert not any("Installing" in e["title"] for e in ask.manifest.values())
 
 
-def test_a_passage_naming_more_than_the_limit_is_treated_as_an_index():
-    """An API table lists symbols; it explains none of them.
+def test_a_reference_table_is_dropped_but_a_busy_passage_is_only_trimmed():
+    """An API index lists symbols; it explains none of them. A page that merely
+    names a dozen is still explaining something, and gets a ranked menu.
 
-    Measured on sympy: 158 passages name more than twelve symbols, and putting
-    them in front of the model costs tokens for an answer that should be empty.
+    One threshold used to do both jobs and could not: at twelve it dropped 8% of
+    graphify's passages and 44% of sympy's, because sympy documents mathematics
+    and names far more symbols per page. Dropping nearly half of a repository's
+    prose to save tokens would have thrown away real explanations.
     """
-    index = {f"symbol_{i}": [f"mod_symbol_{i}"] for i in range(40)}
+    index = {f"symbol_{i}": [f"mod_symbol_{i}"] for i in range(80)}
+
     few = " ".join(f"`symbol_{i}`" for i in range(4))
     assert len(attach.candidates(few, index)) == 4
 
-    many = " ".join(f"`symbol_{i}`" for i in range(attach.MAX_CANDIDATES + 1))
-    assert attach.candidates(many, index) == []
+    # Busy, but not an index: ranked and cut to the menu size, never dropped.
+    busy = " ".join(f"`symbol_{i}`" for i in range(attach.MAX_CANDIDATES + 5))
+    assert len(attach.candidates(busy, index)) == attach.MAX_CANDIDATES
 
-    exactly = " ".join(f"`symbol_{i}`" for i in range(attach.MAX_CANDIDATES))
-    assert len(attach.candidates(exactly, index)) == attach.MAX_CANDIDATES
+    # A genuine reference table never reaches the model.
+    table = " ".join(f"`symbol_{i}`" for i in range(attach.INDEX_MENTIONS + 1))
+    assert attach.candidates(table, index) == []
+
+
+def test_the_menu_is_ranked_by_how_strongly_a_passage_names_a_symbol():
+    """Named in the heading beats named in prose beats used in an example."""
+    index = {"alpha": ["mod_alpha"], "beta": ["mod_beta"], "gamma": ["mod_gamma"]}
+    text = "```\ngamma()\n```\n\nThe `beta` helper does the work."
+    assert attach.candidates(text, index, title="alpha") == [
+        "mod_alpha", "mod_beta", "mod_gamma"]
+
+
+def test_a_plain_english_word_in_prose_is_not_a_mention():
+    """`changes` is a word; `changes()` and `Changes` are symbols.
+
+    An earlier version took every four-letter identifier outside a code block,
+    which made "documentation" and "provides" into mentions and gave every
+    passage in both test repositories a strong mention of something.
+    """
+    found = attach.mentioned("This documentation provides changes to the parser.")
+    assert "documentation" not in found
+    assert "provides" not in found
+    assert "changes" not in found and "parser" not in found
+
+    # The same words, written the way an author writes a symbol.
+    assert set(attach.mentioned("Call changes() on the Parser.")) >= {"changes", "parser"}
+
+    # A capital at the start of a sentence is noise, and it is harmless: a
+    # mention only becomes a candidate if a symbol really carries that name.
+    assert attach.candidates("This provides changes.", {"parser": ["mod_parser"]}) == []
+
+
+def test_a_name_inside_a_fenced_block_is_found():
+    """The passage that describes graphify's entire pipeline is a fenced block.
+
+    Found 2026-09-09 by the independent checker, not by any test here: a
+    single-line backtick rule cannot see inside a fence, and a bare lowercase
+    word is neither CamelCase nor snake_case, so `detect() -> extract() ->
+    build()` produced no candidates at all.
+    """
+    found = attach.mentioned("```\ndetect() -> extract() -> build()\n```")
+    assert set(found) == {"detect", "extract", "build"}
 
 
 def test_the_candidate_list_is_the_same_on_two_runs(repo):

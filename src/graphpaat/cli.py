@@ -13,7 +13,8 @@ from .build import assemble, with_documents
 from .query import match, ranked_names, render, vocabulary, word_vocabulary
 
 
-def deep(built, root: Path, out: Path | None, budget: int) -> dict:
+def deep(built, root: Path, out: Path | None, budget: int,
+         ask_budget: int = attach.DEFAULT_ASK_TOKENS) -> dict:
     """The document lane, in the two-step shape D15 requires.
 
     graph-paat holds no API key and calls no provider. It writes down the prose
@@ -24,7 +25,7 @@ def deep(built, root: Path, out: Path | None, budget: int) -> dict:
     Returns the coverage block for the store, and prints what happened.
     """
     reading = docs.read(root, budget_tokens=budget)
-    ask = attach.build_ask(reading, built.payload())
+    ask = attach.build_ask(reading, built.payload(), budget_tokens=ask_budget)
     folder = (Path(out) if out is not None else Path.cwd() / store.OUT_DIR).resolve()
     folder.mkdir(parents=True, exist_ok=True)
     ask_path = folder / attach.ASK_FILE
@@ -48,8 +49,12 @@ def deep(built, root: Path, out: Path | None, budget: int) -> dict:
         print(f"  ! {path}: {why}")
     if ask.skipped_as_index:
         print(f"  {ask.skipped_as_index} passages skipped: they name more than "
-              f"{attach.MAX_CANDIDATES} symbols, so they are an index, not an "
-              f"explanation")
+              f"{attach.INDEX_MENTIONS} symbols, so they are a reference table, "
+              f"not an explanation")
+    if ask.skipped_over_budget:
+        print(f"  ! {ask.skipped_over_budget} passages not put to the model, over "
+              f"the {ask_budget:,}-token ask budget ({ask.tokens_over_budget:,} "
+              f"tokens). Raise --ask-budget to include them.")
 
     coverage = {
         "read": [d.path for d in reading.documents],
@@ -59,6 +64,8 @@ def deep(built, root: Path, out: Path | None, budget: int) -> dict:
         "tokens_read": read_tokens,
         "tokens_skipped": reading.tokens_skipped,
         "passages_asked": ask.sections,
+        "passages_over_ask_budget": ask.skipped_over_budget,
+        "passages_dropped_as_index": ask.skipped_as_index,
         "ask_digest": ask.digest,
     }
 
@@ -90,7 +97,8 @@ def deep(built, root: Path, out: Path | None, budget: int) -> dict:
 
 
 def build(root: Path, out: Path | None = None, deep_lane: bool = False,
-          prose_budget: int = docs.DEFAULT_BUDGET_TOKENS) -> int:
+          prose_budget: int = docs.DEFAULT_BUDGET_TOKENS,
+          ask_budget: int = attach.DEFAULT_ASK_TOKENS) -> int:
     built = assemble(root)
     nodes, edges = built.nodes, built.edges
     call_edges, refusals = built.call_edges, built.refusals
@@ -154,7 +162,8 @@ def build(root: Path, out: Path | None = None, deep_lane: bool = False,
         for g in built.groups["groups"][:5]:
             print(f"  {g['size']:6d}  {g['name']}")
 
-    coverage = deep(built, root, out, prose_budget) if deep_lane else None
+    coverage = (deep(built, root, out, prose_budget, ask_budget)
+                if deep_lane else None)
     # Re-read from the build: the document lane appends to both lists.
     path = store.write(root, built.nodes, built.edges, collisions, failed, out=out,
                        groups=built.groups, gods=built.gods, documents=coverage)
@@ -243,7 +252,7 @@ def install(root: Path, hosts: list[str], all_hosts: bool, remove: bool) -> int:
 
 
 USAGE = """usage:
-  graph-paat build <path> [--deep] [--prose-budget N] [--out <dir>]
+  graph-paat build <path> [--deep] [--prose-budget N] [--ask-budget N] [--out <dir>]
   graph-paat overview [--top N] [--out <dir>]
   graph-paat install [--host claude|agents|gemini|cursor|copilot] [--all] [--remove]
   graph-paat vocab --words [--out <dir>]        every word used in a name
@@ -292,10 +301,13 @@ def _run(argv: list[str]) -> int:
     if command == "build":
         prose_budget, rest = _take(rest, "--prose-budget", int,
                                    docs.DEFAULT_BUDGET_TOKENS)
+        ask_budget, rest = _take(rest, "--ask-budget", int,
+                                 attach.DEFAULT_ASK_TOKENS)
         deep_lane = "--deep" in rest
         rest = [a for a in rest if a != "--deep"]
         return build(Path(rest[0] if rest else "."), out=out,
-                     deep_lane=deep_lane, prose_budget=prose_budget)
+                     deep_lane=deep_lane, prose_budget=prose_budget,
+                     ask_budget=ask_budget)
     if command == "install":
         hosts: list[str] = []
         while "--host" in rest:
