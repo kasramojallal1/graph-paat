@@ -88,9 +88,16 @@ class TestRender:
         assert "part of" in out or "called by" in out
 
     def test_docstrings_are_marked_as_claims_not_facts(self, corpus, tmp_path):
+        """A docstring is a claim -- and D17 says where the claim came from.
+
+        A docstring is prose, so it is a claim; but a parser read it out of the
+        source file this build, which is a stronger statement than a sentence
+        in a README, and the tag has to say which.
+        """
         graph = graph_of(corpus(SAMPLE), tmp_path / "out")
         out = render(graph, match(graph, ["Widget"])[0], budget=2000)
-        assert "[claim]" in out
+        assert "[claim \u00b7 read from code]" in out
+        assert "[class \u00b7 read from code]" in out
 
     def test_never_prints_source_code(self, corpus, tmp_path):
         graph = graph_of(corpus(SAMPLE), tmp_path / "out")

@@ -31,10 +31,15 @@ class Node:
     id: str
     label: str
     kind: str            # file | class | function | method | rationale
+                         #   | document | claim   (the --deep lane)
     file: str            # relative to the corpus root
     line: int
-    origin: str = "ast"  # provenance is recorded at creation, never inherited
-    text: str | None = None   # rationale nodes carry their docstring
+    # Provenance is recorded at creation, never inherited. "ast" is something a
+    # parser verified this build; "doc" is a sentence a person wrote, which may
+    # have been true once. D17 makes the difference visible on every line of
+    # every answer -- see `query.provenance`.
+    origin: str = "ast"
+    text: str | None = None   # rationale and claim nodes carry their prose
     group: int | None = None  # which community, filled in after clustering
     bases: list[str] | None = None   # class nodes: what it inherits from
 

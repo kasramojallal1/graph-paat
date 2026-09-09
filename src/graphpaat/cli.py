@@ -5,13 +5,92 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from . import store
+from . import attach
+from . import documents as docs
 from . import instructions
-from .build import assemble
+from . import store
+from .build import assemble, with_documents
 from .query import match, ranked_names, render, vocabulary, word_vocabulary
 
 
-def build(root: Path, out: Path | None = None) -> int:
+def deep(built, root: Path, out: Path | None, budget: int) -> dict:
+    """The document lane, in the two-step shape D15 requires.
+
+    graph-paat holds no API key and calls no provider. It writes down the prose
+    that needs reading; the assistant already running it reads that file and
+    writes its answer back; this ingests the answer. First run produces the
+    question, second run consumes the answer.
+
+    Returns the coverage block for the store, and prints what happened.
+    """
+    reading = docs.read(root, budget_tokens=budget)
+    ask = attach.build_ask(reading, built.payload())
+    folder = (Path(out) if out is not None else Path.cwd() / store.OUT_DIR).resolve()
+    folder.mkdir(parents=True, exist_ok=True)
+    ask_path = folder / attach.ASK_FILE
+    ask_path.write_text(ask.text, encoding="utf-8")
+
+    read_tokens = reading.tokens_read
+    print(f"\ndocuments: {len(reading.documents)} read "
+          f"({read_tokens:,} tokens of prose), "
+          f"{sum(len(d.sections) for d in reading.documents)} passages")
+    # Every gap gets a line. A capped read that stays quiet reads as a full one.
+    if reading.skipped:
+        by_reason = Counter(why for _, _, why in reading.skipped)
+        for why, count in by_reason.most_common():
+            held = sum(tok for _, tok, w in reading.skipped if w == why)
+            print(f"  ! {count} not read, {why} ({held:,} tokens)")
+        for path, tok, why in reading.skipped[:5]:
+            print(f"      {path} ({tok:,} tokens, {why})")
+        if len(reading.skipped) > 5:
+            print(f"      ... and {len(reading.skipped) - 5} more")
+    for path, why in reading.unreadable[:5]:
+        print(f"  ! {path}: {why}")
+    if ask.skipped_as_index:
+        print(f"  {ask.skipped_as_index} passages skipped: they name more than "
+              f"{attach.MAX_CANDIDATES} symbols, so they are an index, not an "
+              f"explanation")
+
+    coverage = {
+        "read": [d.path for d in reading.documents],
+        "skipped": [{"path": p, "tokens": tok, "why": w}
+                    for p, tok, w in reading.skipped],
+        "unreadable": [{"path": p, "why": w} for p, w in reading.unreadable],
+        "tokens_read": read_tokens,
+        "tokens_skipped": reading.tokens_skipped,
+        "passages_asked": ask.sections,
+        "ask_digest": ask.digest,
+    }
+
+    answer_path = folder / attach.ANSWER_FILE
+    answer, why = attach.load_answer(answer_path, ask.digest)
+    if why:
+        print(f"\n{ask.sections} passages need reading (~{ask.tokens:,} tokens).")
+        print(f"  {why}")
+        print(f"\n  1. read  {ask_path}")
+        print(f"  2. write {answer_path}")
+        print("  3. run this same command again")
+        print("\nThe map below is the code lane only until you do.")
+        coverage["state"] = "waiting for an answer"
+        return coverage
+
+    ingested = attach.ingest(answer, ask.manifest, reading)
+    with_documents(built, reading, ingested)
+    print(f"  {ingested.attached} passages attached to a symbol, "
+          f"{ingested.empty} described nothing")
+    for reason, count in sorted((ingested.rejected or {}).items()):
+        # A refusal is a result. The one that matters is an id the model typed
+        # rather than picked -- it would have become a node nothing could reach.
+        print(f"  ! {count} rejected: {reason}")
+    coverage["state"] = "attached"
+    coverage["attached"] = ingested.attached
+    coverage["described_nothing"] = ingested.empty
+    coverage["rejected"] = ingested.rejected or {}
+    return coverage
+
+
+def build(root: Path, out: Path | None = None, deep_lane: bool = False,
+          prose_budget: int = docs.DEFAULT_BUDGET_TOKENS) -> int:
     built = assemble(root)
     nodes, edges = built.nodes, built.edges
     call_edges, refusals = built.call_edges, built.refusals
@@ -75,8 +154,10 @@ def build(root: Path, out: Path | None = None) -> int:
         for g in built.groups["groups"][:5]:
             print(f"  {g['size']:6d}  {g['name']}")
 
-    path = store.write(root, nodes, edges, collisions, failed, out=out,
-                       groups=built.groups, gods=built.gods)
+    coverage = deep(built, root, out, prose_budget) if deep_lane else None
+    # Re-read from the build: the document lane appends to both lists.
+    path = store.write(root, built.nodes, built.edges, collisions, failed, out=out,
+                       groups=built.groups, gods=built.gods, documents=coverage)
     print(f"\nwritten: {path}")
     return 0
 
@@ -111,9 +192,9 @@ def vocab(out: Path | None, contains: str | None, limit: int,
 
 
 def query(terms: list[str], out: Path | None, budget: int, depth: int,
-          seeds_wanted: int, per_node: int) -> int:
+          seeds_wanted: int, per_node: int, claims: bool = False) -> int:
     graph = store.read(Path("."), out=out)
-    seeds, more = match(graph, terms, limit=seeds_wanted)
+    seeds, more = match(graph, terms, limit=seeds_wanted, claims=claims)
     print(render(graph, seeds, budget=budget, depth=depth, more=more, per_node=per_node))
     return 0
 
@@ -162,13 +243,19 @@ def install(root: Path, hosts: list[str], all_hosts: bool, remove: bool) -> int:
 
 
 USAGE = """usage:
-  graph-paat build <path> [--out <dir>]
+  graph-paat build <path> [--deep] [--prose-budget N] [--out <dir>]
   graph-paat overview [--top N] [--out <dir>]
   graph-paat install [--host claude|agents|gemini|cursor|copilot] [--all] [--remove]
   graph-paat vocab --words [--out <dir>]        every word used in a name
   graph-paat vocab [--contains <text>] [--limit N] [--out <dir>]
   graph-paat query <term> [<term>...] [--budget N] [--depth N] [--seeds N]
-                                     [--per-node N] [--out <dir>]"""
+                                     [--per-node N] [--claims] [--out <dir>]
+
+  --deep    also read the repository's documents (.md, .rst, .txt, .pdf). Two
+            steps: the first run writes the passages that need reading, you
+            answer them, the second run folds the answers in.
+  --claims  let a sentence from a document be an answer in its own right,
+            rather than only a signpost to the code it describes."""
 
 
 def _take(rest: list[str], flag: str, cast=str, default=None):
@@ -203,7 +290,12 @@ def _run(argv: list[str]) -> int:
     out, rest = _take(rest, "--out", Path)
 
     if command == "build":
-        return build(Path(rest[0] if rest else "."), out=out)
+        prose_budget, rest = _take(rest, "--prose-budget", int,
+                                   docs.DEFAULT_BUDGET_TOKENS)
+        deep_lane = "--deep" in rest
+        rest = [a for a in rest if a != "--deep"]
+        return build(Path(rest[0] if rest else "."), out=out,
+                     deep_lane=deep_lane, prose_budget=prose_budget)
     if command == "install":
         hosts: list[str] = []
         while "--host" in rest:
@@ -224,10 +316,12 @@ def _run(argv: list[str]) -> int:
     depth, rest = _take(rest, "--depth", int, 2)
     seeds_wanted, rest = _take(rest, "--seeds", int, 6)
     per_node, rest = _take(rest, "--per-node", int, 10)
+    claims = "--claims" in rest
+    rest = [a for a in rest if a != "--claims"]
     if not rest:
         print(USAGE, file=sys.stderr)
         return 2
-    return query(rest, out, budget, depth, seeds_wanted, per_node)
+    return query(rest, out, budget, depth, seeds_wanted, per_node, claims=claims)
 
 
 if __name__ == "__main__":

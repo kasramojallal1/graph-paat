@@ -34,6 +34,9 @@ class Built:
     groups: dict | None = None
     gods: list | None = None
     grouping_error: str = ""
+    # The --deep lane, absent unless it ran.
+    reading: object | None = None       # documents.Reading
+    ingested: object | None = None      # attach.Ingested
 
     def payload(self) -> dict:
         """The same shape `store.read` returns, without going through disk.
@@ -90,4 +93,25 @@ def assemble(root: Path, *, cluster: bool = True) -> Built:
             node.group = membership.get(node.id)
     except ImportError as exc:          # pragma: no cover - depends on install
         built.grouping_error = str(exc)
+    return built
+
+
+def with_documents(built: Built, reading, ingested) -> Built:
+    """Fold the document lane into a finished code graph.
+
+    It runs *after* clustering on purpose. The groups describe the shape of the
+    code, and a README is not part of that shape -- letting prose into the
+    clustering would rename a module after the page that documents it.
+
+    Every id minted here goes through the same collision tracker as a parsed
+    symbol. A document node that lands on a name a class already owns is exactly
+    the duplicate this whole design exists to prevent, so it is reported rather
+    than assumed impossible.
+    """
+    for node in ingested.nodes:
+        built.collisions.claim(node.id, f"{node.file}:L{node.line}")
+        built.nodes.append(node)
+    built.edges.extend(ingested.edges)
+    built.reading = reading
+    built.ingested = ingested
     return built

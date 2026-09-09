@@ -48,7 +48,8 @@ from pathlib import PurePosixPath
 
 # How a relation reads when you arrive from the other end.
 INVERSE = {"contains": "part of", "calls": "called by", "imports": "imported by",
-           "rationale_for": "explains", "inherits": "subclassed by"}
+           "rationale_for": "explains", "inherits": "subclassed by",
+           "describes": "described in"}
 
 # Most interesting first. What a thing DOES beats what it holds; a docstring is
 # context rather than structure, so it comes last but is never dropped -- it is
@@ -57,7 +58,11 @@ INVERSE = {"contains": "part of", "calls": "called by", "imports": "imported by"
 # no call edge shows.
 RELATION_ORDER = {"inherits": 0, "subclassed by": 1, "calls": 2, "called by": 3,
                   "imports": 4, "imported by": 5, "part of": 6, "contains": 7,
-                  "rationale_for": 8, "explains": 8}
+                  "rationale_for": 8, "explains": 8,
+                  # A document claim is the least verified thing in the map, so
+                  # it is shown last -- and never dropped, because it is often
+                  # the only sentence of plain English about a symbol.
+                  "describes": 9, "described in": 9}
 
 # The words a question is made of rather than the thing it asks about.
 #
@@ -109,6 +114,11 @@ KIND_BONUS = 150.0         # the question named this kind of thing
 # matched "client", "connect" and "context" at once and took first place on
 # seven of go-grpc's ten questions.
 TEST_MARKS = ("/test", "test_", "_test.", ".test.", "/spec", "_spec.", "conftest")
+
+# Nodes that carry prose rather than a name. Their labels are bookkeeping -- a
+# section heading, a filename -- so they never enter the vocabulary an agent
+# picks search terms from, and never seed a search by their label.
+PROSE_KINDS = ("rationale", "claim", "document")
 
 # A node connected to more than this is a hub. We show it and do not expand
 # through it: two hops through Django's ValidationError reaches half the repo.
@@ -238,7 +248,7 @@ def word_vocabulary(graph: dict) -> list[str]:
     """
     seen: set[str] = set()
     for node in graph["nodes"]:
-        if node["kind"] == "rationale":
+        if node["kind"] in PROSE_KINDS:
             continue
         for word in words(node["label"]):
             if 3 <= len(word) <= 30:
@@ -250,7 +260,7 @@ def vocabulary(graph: dict) -> dict[str, list[str]]:
     """Every name in the graph, mapped to the nodes carrying it."""
     index: dict[str, list[str]] = defaultdict(list)
     for node in graph["nodes"]:
-        if node["kind"] == "rationale":
+        if node["kind"] in PROSE_KINDS:
             continue          # a docstring's label is bookkeeping, not a name
         index[node["label"]].append(node["id"])
     return index
@@ -265,7 +275,36 @@ def _degrees(graph: dict) -> dict[str, int]:
     return degree
 
 
-def _searchable(graph: dict) -> list[tuple]:
+def prose_for(graph: dict) -> dict[str, str]:
+    """Every symbol, mapped to the prose written about it.
+
+    Two sources, deliberately joined. A **docstring** is prose the parser found
+    inside the code, arriving as `rationale_for` from the symbol to the text. A
+    **document claim** is prose from a README or a manual, arriving as
+    `describes` from the claim to the symbol -- the opposite direction, because
+    a document is not part of the symbol the way a docstring is.
+
+    They are concatenated rather than overwritten. Before the document lane a
+    symbol had at most one piece of prose, so assigning was the same as
+    appending; with two lanes it is not, and a symbol that has both a docstring
+    and a page written about it would otherwise keep only whichever edge came
+    last in the file.
+    """
+    parts: dict[str, list[str]] = defaultdict(list)
+    by_id = {n["id"]: n for n in graph["nodes"]}
+    for edge in graph["edges"]:
+        if edge["relation"] == "rationale_for":
+            doc = by_id.get(edge["target"])
+            if doc is not None and doc.get("text"):
+                parts[edge["source"]].append(doc["text"])
+        elif edge["relation"] == "describes":
+            claim = by_id.get(edge["source"])
+            if claim is not None and claim.get("text"):
+                parts[edge["target"]].append(claim["text"])
+    return {nid: " ".join(chunks) for nid, chunks in parts.items()}
+
+
+def _searchable(graph: dict, claims: bool = False) -> list[tuple]:
     """Everything about a node that a question can be matched against.
 
     The docstring is in here, and it is the one place we look that graphify does
@@ -274,28 +313,30 @@ def _searchable(graph: dict) -> list[tuple]:
     and reused" shares no word with any name in `requests`; the answer,
     `HTTPAdapter`, says "connection pooling" in its own first line. Reading it is
     worth 3 questions outright and 7 in the top three.
+
+    `claims` is D19, and it is deliberately undecided. With it off, a sentence
+    from a document can only raise the score of the symbol it describes -- a
+    signpost. With it on, the sentence can come back as an answer in its own
+    right. Both are built; the measurement chooses.
     """
-    doc_of: dict[str, str] = {}
-    by_id = {n["id"]: n for n in graph["nodes"]}
-    for edge in graph["edges"]:
-        # The docstring is the TARGET of a rationale_for edge; the symbol it
-        # explains is the source.
-        if edge["relation"] == "rationale_for":
-            doc = by_id.get(edge["target"])
-            if doc is not None and doc.get("text"):
-                doc_of[edge["source"]] = doc["text"]
+    doc_of = prose_for(graph)
 
     rows = []
     for node in graph["nodes"]:
-        if node["kind"] == "rationale":
+        kind = node["kind"]
+        if kind in PROSE_KINDS and not (claims and kind == "claim"):
             continue
+        is_claim = kind == "claim"
         label = node["label"]
         name_words = {f for w in words(label) for f in forms(w)}
-        doc_words = {f for w in words(doc_of.get(node["id"], "")) for f in forms(w)}
+        # A claim has no name worth searching -- a section heading is a title,
+        # not an identifier. What it knows is in its text.
+        text = node.get("text") or "" if is_claim else doc_of.get(node["id"], "")
+        doc_words = {f for w in words(text) for f in forms(w)}
         rows.append((node["id"], label.lower(), name_words, node["file"].lower(),
                      {f for w in words(node["file"]) for f in forms(w)}, doc_words,
-                     node["kind"], _is_test(node["file"], label),
-                     max(1, len(name_words)), len(label)))
+                     kind, _is_test(node["file"], label),
+                     max(1, len(name_words)), len(label), is_claim))
     return rows
 
 
@@ -316,7 +357,8 @@ def _idf(rows: list[tuple], terms: list[str]) -> dict[str, float]:
     return weights
 
 
-def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int]:
+def match(graph: dict, terms: list[str], limit: int = 6,
+          claims: bool = False) -> tuple[list[str], int]:
     """Rank nodes against the question. Returns (seeds, how many more matched).
 
     One pass, four signals.
@@ -339,7 +381,7 @@ def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int
     answered "how are database rows queried" with `fetch_returned_insert_rows`.
     Worth 6 questions.
     """
-    rows = _searchable(graph)
+    rows = _searchable(graph, claims=claims)
     query, kind = _query_terms(terms)
     if not query:
         return [], 0
@@ -349,12 +391,20 @@ def match(graph: dict, terms: list[str], limit: int = 6) -> tuple[list[str], int
 
     scored: list[tuple[float, str, int]] = []
     for (nid, label, name_words, path, path_words, doc_words, node_kind,
-         is_test, n_words, label_len) in rows:
+         is_test, n_words, label_len, is_claim) in rows:
         tiered = corroborating = 0.0
         matched = 0
         for term in query:
             weight = weights[term]
             said = spellings[term]
+            if is_claim:
+                # A claim is matched on what it SAYS, never on its heading. A
+                # section called "Matrices" would otherwise take an exact-name
+                # first place off every real symbol in the module.
+                if said & doc_words:
+                    tiered += TIER_DOC * weight
+                    matched += 1
+                continue
             # Every comparison runs over the term's spellings, not the raw word,
             # so `cookies` reaches `RequestsCookieJar` and `queried` reaches
             # `QuerySet` without the query and the name having to agree on
@@ -448,6 +498,19 @@ def neighbourhood(graph: dict, seeds: list[str], depth: int = 2
     return seen, travelled, hubs
 
 
+# D17: every line of an answer says where it came from. A parsed function is a
+# fact; a sentence someone wrote is a claim that can be five years stale, and
+# the difference has to survive being scrolled past. It costs a few tokens on
+# every line of every answer, forever, and that was the trade Kasra took.
+PROVENANCE = {"ast": "read from code", "doc": "from a document"}
+
+
+def provenance(node: dict) -> str:
+    """The `[what it is - where it came from]` tag on one line of an answer."""
+    kind = "claim" if node["kind"] in ("rationale", "claim") else node["kind"]
+    return f"[{kind} \u00b7 {PROVENANCE.get(node.get('origin', 'ast'), 'origin unknown')}]"
+
+
 def _interest(relation: str, node: dict, degree: dict[str, int]) -> tuple:
     """Sort key for one link. Lower is shown first.
 
@@ -464,7 +527,12 @@ def _interest(relation: str, node: dict, degree: dict[str, int]) -> tuple:
 
 def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
            more: int = 0, per_node: int = 10) -> str:
-    """The map an agent reads. Names, places, relations -- never source code."""
+    """The map an agent reads. Names, places, relations -- never source code.
+
+    Every line carries a provenance tag (D17). `[class - read from code]` is
+    something a parser verified this build; `[claim - from a document]` is a
+    sentence a person wrote, which may have been true once.
+    """
     nodes = {n["id"]: n for n in graph["nodes"]}
     # A group holding a large share of the codebase is not a part of it. Django's
     # biggest holds 2,811 nodes and is named after ValidationError, which tells a
@@ -505,24 +573,34 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
             claimed = named_folder.get(node.get("group"), "")
             if claimed and str(PurePosixPath(node["file"]).parent) != claimed:
                 where = None
-        head = f"\n{node['label']}    {node['file']}:L{node['line']}    [{node['kind']}]"
+        head = (f"\n{node['label']}    {node['file']}:L{node['line']}    "
+                f"{provenance(node)}")
         if where:
             head += f"    part of: {where}"
         block = [head]
+        if node["kind"] == "claim" and node.get("text"):
+            # A claim returned as an answer in its own right (D19) has to show
+            # what it says -- its heading is not the answer, its sentence is.
+            block.append(f'    "{" ".join(node["text"].split())[:200]}"')
 
         entries = [(r, nodes[t]) for r, t in links.get(seed, []) if t in nodes]
         entries.sort(key=lambda rt: _interest(rt[0], rt[1], degree))
         hidden = max(0, len(entries) - per_node)
         for relation, target in entries[:per_node]:
-            if target["kind"] == "rationale":
-                # A docstring is a claim, not a parser fact. Marked, so a stale
-                # comment is never read as something a parser verified.
+            if target["kind"] in ("rationale", "claim"):
+                # Prose, not a parser fact. Marked with where it came from, so a
+                # stale comment is never read as something a parser verified --
+                # and so a README sentence is never mistaken for a docstring.
                 snippet = " ".join((target.get("text") or "").split())[:110]
-                block.append(f'    {relation:11s} [claim] "{snippet}"')
+                where_from = (f"    {target['file']}:L{target['line']}"
+                              if target["kind"] == "claim" else "")
+                block.append(f'    {relation:11s} {provenance(target)}'
+                             f'{where_from}  "{snippet}"')
             else:
                 mark = " (hub)" if target["id"] in hubs else ""
                 block.append(f"    {relation:11s} {target['label']}"
-                             f"    {target['file']}:L{target['line']}{mark}")
+                             f"    {target['file']}:L{target['line']}"
+                             f"    {provenance(target)}{mark}")
         if hidden:
             block.append(f"    ... {hidden} more links (raise --per-node)")
 

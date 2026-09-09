@@ -65,7 +65,7 @@ def god_nodes(nodes: list[dict], edges: list[dict], top: int = 15) -> list[dict]
     out = []
     for nid, count in ranked:
         node = by_id[nid]
-        if node["kind"] in ("file", "rationale"):
+        if node["kind"] in ("file", "rationale", "claim", "document"):
             continue          # a file is connected to everything it contains
         out.append({"id": nid, "label": node["label"], "file": node["file"],
                     "line": node["line"], "connections": count})
@@ -142,7 +142,8 @@ def _nameability(node: dict) -> int:
 
 
 def _summarise(number: int, members: set, by_id: dict, degree: dict) -> dict:
-    real = [by_id[m] for m in members if m in by_id and by_id[m]["kind"] != "rationale"]
+    real = [by_id[m] for m in members if m in by_id
+            and by_id[m]["kind"] not in ("rationale", "claim", "document")]
     # A file node is connected to everything it contains, so it wins on degree
     # while naming nothing. The hub should be a symbol someone can look up.
     symbols = [n for n in real if n["kind"] != "file"] or real

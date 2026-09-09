@@ -42,7 +42,8 @@ def out_path(root: Path, out: Path | None = None) -> Path:
 
 def write(root: Path, nodes: list[Node], edges: list[Edge],
           collisions, failed: list[str], out: Path | None = None,
-          groups: dict | None = None, gods: list | None = None) -> Path:
+          groups: dict | None = None, gods: list | None = None,
+          documents: dict | None = None) -> Path:
     path = out_path(root, out)
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -66,6 +67,11 @@ def write(root: Path, nodes: list[Node], edges: list[Edge],
             "ids_unique": len({n.id for n in nodes}),
             "collisions": {nid: where for nid, where in collided.items()},
             "unresolved_edges": sum(1 for e in edges if not e.resolved),
+            # What the document lane read and, more to the point, what it did
+            # not. A capped read that does not say it was capped is a graph that
+            # looks complete a week later, which is the failure this whole block
+            # exists to prevent.
+            "documents": documents or {},
         },
     }
     # Written whole then moved, so an interrupted run cannot leave a half-file

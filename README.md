@@ -12,13 +12,13 @@ $ graph-paat query QuerySet
 
 graph: 15709 nodes | seeds: 1 | shown: 1 | ~138 tokens
 
-QuerySet    db/models/query.py:L293    [class]    part of: db/models · QuerySet
-    part of     query.py        db/models/query.py:L1
-    contains    order_by        db/models/query.py:L1695
-    contains    values_list     db/models/query.py:L1364
-    contains    bulk_create     db/models/query.py:L757
-    contains    select_related  db/models/query.py:L1575
-    contains    delete          db/models/query.py:L1164
+QuerySet    db/models/query.py:L293    [class · read from code]    part of: db/models · QuerySet
+    part of     query.py        db/models/query.py:L1      [file · read from code]
+    contains    order_by        db/models/query.py:L1695   [method · read from code]
+    contains    values_list     db/models/query.py:L1364   [method · read from code]
+    contains    bulk_create     db/models/query.py:L757    [method · read from code]
+    contains    select_related  db/models/query.py:L1575   [method · read from code]
+    contains    delete          db/models/query.py:L1164   [method · read from code]
     ... 103 more links (raise --per-node)
 ```
 
@@ -37,10 +37,11 @@ pip install -e .
 ```
 
 Reading Python needs nothing installed — the standard library's own parser does it.
-`networkx` is used for grouping. Go and TypeScript need grammars:
+`networkx` is used for grouping. Other languages need grammars, and reading PDFs needs a PDF
+library:
 
 ```bash
-pip install -e ".[all]"      # or ".[go]" / ".[typescript]"
+pip install -e ".[all]"      # or ".[go]" / ".[typescript]" / ".[pdf]"
 ```
 
 Without one, those files are skipped and the build says so rather than quietly leaving them
@@ -53,7 +54,43 @@ graph-paat build /path/to/repo          # read the repo, write the graph
 graph-paat overview                     # what are the main parts of this codebase
 graph-paat vocab --contains auth        # what names exist in the graph
 graph-paat query login verify           # a map of those names and their links
+graph-paat build /path/to/repo --deep   # also read the repo's own documents
 ```
+
+### Every line says where it came from
+
+A parsed function is a fact. A sentence someone wrote is a claim that may have been true when
+it was written. The map never blurs the two:
+
+```
+Console                             console.py:L593   [class · read from code]
+"the entry point for all output"    README.md:L12     [claim · from a document]
+```
+
+An agent that cannot tell those apart reads a five-year-old README line as something a parser
+checked today, which is exactly the mistake a map is supposed to prevent.
+
+### Reading the repository's prose — `--deep`
+
+Off by default. With it, `graph-paat` also reads `.md`, `.rst`, `.txt` and PDF files and
+attaches what they say to the symbols they describe. Useful where the names are opaque but the
+documentation is good.
+
+**It never calls a model, and there is no API key anywhere in this project.** The agent running
+the tool already has a model, so the tool writes down the passages that need reading, the agent
+reads them and writes its answer back, and the second run folds it in:
+
+```bash
+graph-paat build . --deep     # writes graph-paat-out/documents-to-read.md
+                              # ... you answer it in document-answers.json ...
+graph-paat build . --deep     # folds the answers into the map
+```
+
+**The agent picks from a list; it never types an identifier.** Each passage comes with the
+names that already exist in the graph, and an id that is not on that list is rejected rather
+than created — so a document about something not in the map attaches to nothing, which is the
+right answer. Prose is capped per repository and the build prints exactly which files the cap
+excluded and what they held.
 
 `overview` answers the question you ask first about an unfamiliar repository, and the one a
 map of individual symbols cannot. On Django:
