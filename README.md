@@ -50,6 +50,18 @@ Half the time, from one line written by a stranger, the file that needed changin
 top three. sympy is the one it loses: a codebase whose function names are things like
 `_eigenvals`, where the English lives in the docstrings rather than the identifiers.
 
+The issues ship with the repository, so the graph-paat column takes one command per package
+and no network:
+
+```bash
+python benchmarks/swe_bench.py score django /path/to/site-packages/django
+python benchmarks/swe_bench.py score sympy  /path/to/site-packages/sympy
+```
+
+`--graphify path/to/graphify-out/graph.json` scores a graphify build of the same package
+with the same rule (the table is graphify 0.9.49; older releases rank differently), and
+`fetch` re-downloads the 300 issues from HuggingFace.
+
 ## Install
 
 ```bash
