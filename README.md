@@ -30,6 +30,26 @@ Which seven is the point. A class with 111 methods cannot be summarised by the f
 alphabetically — that gives `_add_hints` and `_batched_insert`. Links are ranked by how
 connected their target is, so the answer is `order_by` and `bulk_create`.
 
+## Does it find the right file?
+
+The test that counts is one nobody here wrote. [SWE-bench Lite](https://www.swebench.com/)
+is 300 real GitHub issues from twelve Python projects, filed by their developers years before
+this tool existed, and for each one the right answer is recorded: the file the maintainers
+actually changed to fix it. The 189 issues from Django (114) and sympy (75) — 155,000 and
+753,000 lines — were asked using only the issue's one-line title, and scored on whether that
+file is in the top three results. The same issues, titles and scoring were run against
+[graphify](https://github.com/Graphify-Labs/graphify) on its own graphs of the same two packages.
+
+| | graph-paat | graphify |
+|---|---|---|
+| Django — 114 issues | **51%** | 37% |
+| sympy — 75 issues | 48% | **52%** |
+| **all 189** | **50%** | 43% |
+
+Half the time, from one line written by a stranger, the file that needed changing is in the
+top three. sympy is the one it loses: a codebase whose function names are things like
+`_eigenvals`, where the English lives in the docstrings rather than the identifiers.
+
 ## Install
 
 ```bash
@@ -37,12 +57,15 @@ pip install -e .
 ```
 
 Reading Python needs nothing installed — the standard library's own parser does it.
-`networkx` is used for grouping. Other languages need grammars, and reading PDFs needs a PDF
-library:
+`networkx` is used for grouping. Every other language needs its tree-sitter grammar, and
+reading PDFs needs a PDF library:
 
 ```bash
-pip install -e ".[all]"      # or ".[go]" / ".[typescript]" / ".[pdf]"
+pip install -e ".[all]"      # or ".[go]" / ".[typescript]" / ".[rust]" / ".[pdf]" ...
 ```
+
+The extras are `go`, `typescript`, `javascript`, `java`, `csharp`, `rust`, `ruby`, `php`,
+`swift`, `kotlin`, `bash`, `lua`, `c` and `cpp`.
 
 Without one, those files are skipped and the build says so rather than quietly leaving them
 out.
@@ -175,8 +198,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
-78 unit tests covering every identity rule, every resolution rule, and every reason the
-resolver refuses a call. Several exist because the bug they describe shipped once: a builtin
+840 tests covering every identity rule, every resolution rule, every language, and every
+reason the resolver refuses a call. Several exist because the bug they describe shipped once: a builtin
 `set()` resolved to a same-named function in a vendored package, a docstring id that clashed
 with a real symbol named `_doc`, edges collected twice because they are reachable from both
 ends, and output written into the repository being analysed.
@@ -184,8 +207,8 @@ ends, and output written into the repository being analysed.
 ### Against real repositories
 
 Unit tests use code small enough to know the answer by hand. That is not enough: some defects
-only appear at scale. So the tool is also run over six large installed packages, and every
-number it produces is recorded and compared on the next run.
+only appear at scale. So the tool is also run over forty real repositories across all
+fifteen languages, and every number it produces is recorded and compared on the next run.
 
 ```bash
 cp tests/corpora.sample.json tests/corpora.json   # set paths for your machine
@@ -193,14 +216,19 @@ python -m tests.corpus_runner                     # compare against baselines
 python -m tests.corpus_runner --record            # accept current numbers
 ```
 
-| corpus | what it stresses |
+| language | corpora |
 |---|---|
-| `requests` | small enough to verify entirely by hand |
-| `rich` | modern typed classes, properties |
-| `pydantic` | metaclasses and generated code |
-| `django` | classic OO, decorators, platform branches |
-| `numpy` | C extensions, dynamic imports |
-| `torch` | scale — 890,000 lines |
+| Python | requests, rich, pydantic, django, numpy, pandas, scipy, sympy, torch, transformers |
+| Go | uuid, logrus, grpc |
+| TypeScript | redux, rxjs, zod |
+| JavaScript | axios, three.js |
+| Java | gson, commons-lang |
+| C# | Serilog, Newtonsoft.Json |
+| Rust | ripgrep, tokio |
+| C / C++ | curl, redis / fmt, googletest |
+| Ruby, PHP, Swift, Kotlin, Bash, Lua | two each — jekyll, rack; guzzle, slim; Alamofire, swift-algorithms; okhttp, coroutines; bats, bash-it; lazy.nvim, telescope |
+
+`requests` is small enough to verify entirely by hand; `torch` is 890,000 lines.
 
 **A metric that moves without an explanation is a bug until proven otherwise.** Reintroducing
 a naming bug that had already been fixed moves `id_collisions` on Django from 54 to 151, and
@@ -209,8 +237,9 @@ why one corpus is not enough.
 
 ## Status
 
-Early. It reads **Python, Go and TypeScript**. Verified by hand against Django, pydantic,
-grpc, redux and several other large packages, and regression-checked against twelve recorded
+Early. It reads **fifteen languages**: Python, Go, TypeScript, JavaScript, Java, C#, Rust,
+Ruby, PHP, Swift, Kotlin, Bash, Lua, C and C++. Verified by hand against Django, pydantic,
+grpc, redux and several other large packages, and regression-checked against forty recorded
 corpora.
 
 Every language produces the same shapes. A Go struct, a TypeScript interface and a Python
