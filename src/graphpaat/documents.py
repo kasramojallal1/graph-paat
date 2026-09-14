@@ -36,7 +36,7 @@ from pathlib import Path
 from .parse import SKIP_DIRS
 
 # What counts as a document. `.markdown` is here because it is common enough to
-# be worth two words; images are deliberately absent (D20).
+# be worth two words; images are deliberately absent.
 TEXT_EXTENSIONS = {".md", ".markdown", ".rst", ".txt"}
 PDF_EXTENSIONS = {".pdf"}
 DOC_EXTENSIONS = TEXT_EXTENSIONS | PDF_EXTENSIONS
@@ -48,9 +48,9 @@ DOC_EXTENSIONS = TEXT_EXTENSIONS | PDF_EXTENSIONS
 # happen.
 DOC_MARK = "#document"
 
-# How much prose the model is asked to read, per repository. Measured
-# 2026-09-09: graphify's 363 markdown files are ~980k tokens, so an uncapped
-# lane costs more than the rest of the session put together.
+# How much prose the model is asked to read, per repository. One measured
+# project has 363 markdown files totalling ~980k tokens, so an uncapped lane
+# costs more than the rest of the session put together.
 DEFAULT_BUDGET_TOKENS = 200_000
 
 # A section longer than this is split further at paragraph boundaries. Long
@@ -116,13 +116,13 @@ class Reading:
 def fingerprint(text: str) -> set[str]:
     """The parts of a document that survive being rewritten in another language.
 
-    Measured 2026-09-09 on graphify: 31 translated copies of one README were
-    taking 77,000 of the 200,000-token budget -- 39% of everything the model
+    Measured on one project: 31 translated copies of one README were taking
+    77,000 of the 200,000-token budget -- 39% of everything the model
     would be asked to read, spent on the same page in Arabic, Chinese, Korean
     and twenty-eight others. Ten near-identical `skill-*.md` files, one per
     host, took most of the rest.
 
-    Prose translates; `graphify update` does not. So a document is fingerprinted
+    Prose translates; a shell command does not. So a document is fingerprinted
     by its backticked identifiers, its fenced commands and its URLs, and a later
     document sharing nearly all of one already read is a copy.
     """
@@ -136,8 +136,8 @@ def _order_key(rel: Path) -> tuple:
     The budget is spent from the top of this order, so it decides which prose a
     user actually gets when a repository has more than the cap allows.
 
-    **History files sort last, and this is worth 99,484 tokens.** Measured
-    2026-09-09: graphify's `CHANGELOG.md` is half the entire prose budget on its
+    **History files sort last, and this is worth 99,484 tokens.** On one
+    measured project the `CHANGELOG.md` is half the entire prose budget on its
     own, and a changelog describes what *changed*, not what anything *is* -- the
     weakest prose per token in a repository, and usually the largest file. It is
     deprioritised rather than excluded, so a repository with room to spare still
@@ -194,7 +194,7 @@ def read_pdf(path: Path) -> tuple[str, str]:
         return "", f"unreadable PDF ({type(exc).__name__})"
     text = "\n\n".join(p.strip() for p in pages if p.strip())
     if not text.strip():
-        # A scanned PDF is images of text. We do not do images (D20), and
+        # A scanned PDF is images of text. We do not do images, and
         # saying so is better than emitting an empty document.
         return "", "no extractable text (scanned or image-only)"
     return text, ""

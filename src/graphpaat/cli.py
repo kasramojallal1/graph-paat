@@ -15,7 +15,7 @@ from .query import match, ranked_names, render, vocabulary, word_vocabulary
 
 def deep(built, root: Path, out: Path | None, budget: int,
          ask_budget: int = attach.DEFAULT_ASK_TOKENS) -> dict:
-    """The document lane, in the two-step shape D15 requires.
+    """The document lane, in two steps.
 
     graph-paat holds no API key and calls no provider. It writes down the prose
     that needs reading; the assistant already running it reads that file and
@@ -137,8 +137,8 @@ def build(root: Path, out: Path | None = None, deep_lane: bool = False,
     for why, count in refusals.most_common(8):
         print(f"  {count:6d}  {why}")
 
-    # Every run says what it could not do. graphify computes this and drops it;
-    # D6 says a gap the user cannot see is worse than one they can.
+    # Every run says what it could not do. A gap the user cannot see is worse
+    # than one they can.
     print(f"unique ids: {len(set(n.id for n in nodes))}")
     lines = collisions.report()
     if lines:
@@ -174,7 +174,7 @@ def build(root: Path, out: Path | None = None, deep_lane: bool = False,
 def vocab(out: Path | None, contains: str | None, limit: int,
           as_words: bool = False) -> int:
     """Publish the graph's names so the calling agent can expand a question
-    against them (D9). Optionally filtered, because 11,000 names is a lot to
+    against them. Optionally filtered, because 11,000 names is a lot to
     hand a model that only needs the ones near one topic."""
     graph = store.read(Path("."), out=out)
     if as_words:

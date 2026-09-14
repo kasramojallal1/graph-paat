@@ -65,7 +65,7 @@ class TestNodes:
         assert "m_w_choices" in ids(nodes)
 
     def test_two_same_named_functions_collide_and_are_reported(self, corpus):
-        # The case graphify is silent about, and the reason we report at all.
+        # The case that is easiest to lose silently, and the reason we report at all.
         root = corpus({"m.py": "def f():\n    pass\ndef f():\n    pass\n"})
         _, _, collisions, _ = _run(root)
         assert "m_f" in collisions.collided()

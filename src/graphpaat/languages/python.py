@@ -68,9 +68,9 @@ class _Walker(ast.NodeVisitor):
         return nid
 
     def _emit_docstring(self, owner_id: str, node: ast.AST) -> None:
-        """D5: a docstring becomes a node explaining the thing it sits on.
+        """A docstring becomes a node explaining the thing it sits on.
 
-        Comments are the other half of D5 and Python's parser discards them, so
+        Comments are the other half of that and Python's parser discards them, so
         they need `tokenize` and are deliberately left to a later step.
         """
         doc = ast.get_docstring(node)

@@ -21,7 +21,7 @@ class TestNormalise:
         assert normalise("MinHashLSH") == "minhashlsh"
 
     def test_keeps_leading_underscore(self):
-        # The rule that changed on 2026-09-01. Django writes a public method
+        # Django writes a public method
         # delegating to a private one; stripping merged them and destroyed 197
         # symbols.
         assert normalise("_changeform_view") == "_changeform_view"

@@ -11,7 +11,7 @@ file it did not read instead of quietly leaving it out.
 
 **Order matters where two languages claim one extension.** `.h` is the only
 real case: it is C's header extension and also C++'s, and a header decides
-nothing about which language wrote it. Measured 2026-09-07 over 108 real
+nothing about which language wrote it. Measured over 108 real
 headers, the C++ grammar ties the C grammar on C headers (5 errors against 5 on
 curl, 10 against 10 on redis) and is fourteen times better on C++ ones (727
 against 10,009 on fmt). So C++ is registered after C and takes `.h` when its

@@ -53,7 +53,7 @@ def test_readme_first_then_docs_then_outward(tmp_path):
 def test_history_files_sort_last(tmp_path):
     """A changelog is the largest and least informative file in most repos.
 
-    Measured on graphify: `CHANGELOG.md` alone is 99,484 tokens, half the whole
+    Measured on one project: `CHANGELOG.md` alone is 99,484 tokens, half the whole
     prose budget, spent on what changed rather than on what anything is.
     """
     write(tmp_path, "CHANGELOG.md", "x" * 200)

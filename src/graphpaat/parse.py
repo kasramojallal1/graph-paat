@@ -36,8 +36,8 @@ class Node:
     line: int
     # Provenance is recorded at creation, never inherited. "ast" is something a
     # parser verified this build; "doc" is a sentence a person wrote, which may
-    # have been true once. D17 makes the difference visible on every line of
-    # every answer -- see `query.provenance`.
+    # have been true once. The difference is visible on every line of every
+    # answer -- see `query.provenance`.
     origin: str = "ast"
     text: str | None = None   # rationale and claim nodes carry their prose
     group: int | None = None  # which community, filled in after clustering
@@ -49,9 +49,9 @@ class CallSite:
     """A call we saw but have not resolved yet.
 
     Extraction records what it SAW; resolution decides what it MEANS. Keeping
-    them apart is deliberate: the study found every problem in this kind of
-    system lives at the handoff between stages, and a handoff you can print is
-    one you can debug.
+    them apart is deliberate: every hard bug in this kind of system has lived
+    at the handoff between stages, and a handoff you can print is one you can
+    debug.
     """
     caller: str                     # node id of the function doing the calling
     file: str

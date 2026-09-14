@@ -35,7 +35,7 @@ was before `class` existed.
 sits inside the adapter in `adapters/xhr.js`; `const getBodyLength = async
 (body) => ...` sits inside the fetch adapter. Neither is visible from the
 file's top level, and a walk that reads only the top level therefore misses
-them -- measured 2026-09-08 across two corpora, that single shape was most of
+them -- measured across two corpora, that single shape was most of
 the gap between what these files declare and what the graph held. See
 `_Reader.walk_body`.
 """
@@ -58,7 +58,7 @@ _MODULE_EXTENSIONS = (".js", ".jsx", ".mjs", ".cjs")
 # the declaration: 1 is touching, 2 is one blank line between.
 #
 # Both are real house styles and the split is close to total. Measured
-# 2026-09-08 over two corpora: axios writes 107 of its 111 JSDoc blocks
+# Measured over two corpora: axios writes 107 of its 111 JSDoc blocks
 # touching the declaration, express writes 140 of its 143 with exactly one
 # blank line. Requiring adjacency -- the rule the `//` comment languages use --
 # would have thrown away express's entire "why" lane and kept axios's.
@@ -460,7 +460,7 @@ class _Reader:
         `/^([a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(url)` into an edge to an
         unrelated helper that happened to be called `test`.
 
-        Measured 2026-09-08 on axios: 21 of the 27 links that rule made came
+        Measured on axios: 21 of the 27 links that rule made came
         from a call on an expression rather than on a name, and nine of those
         were regex `.test(...)` calls landing on the same wrong helper.
 

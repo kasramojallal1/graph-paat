@@ -106,7 +106,7 @@ def test_a_reference_table_is_dropped_but_a_busy_passage_is_only_trimmed():
     names a dozen is still explaining something, and gets a ranked menu.
 
     One threshold used to do both jobs and could not: at twelve it dropped 8% of
-    graphify's passages and 44% of sympy's, because sympy documents mathematics
+    one project's passages and 44% of sympy's, because sympy documents mathematics
     and names far more symbols per page. Dropping nearly half of a repository's
     prose to save tokens would have thrown away real explanations.
     """
@@ -153,9 +153,9 @@ def test_a_plain_english_word_in_prose_is_not_a_mention():
 
 
 def test_a_name_inside_a_fenced_block_is_found():
-    """The passage that describes graphify's entire pipeline is a fenced block.
+    """The passage that describes a project's entire pipeline is a fenced block.
 
-    Found 2026-09-09 by the independent checker, not by any test here: a
+    Found by hand, not by any test here: a
     single-line backtick rule cannot see inside a fence, and a bare lowercase
     word is neither CamelCase nor snake_case, so `detect() -> extract() ->
     build()` produced no candidates at all.
@@ -175,14 +175,14 @@ def test_the_candidate_list_is_the_same_on_two_runs(repo):
 
 
 # --------------------------------------------------------------------------
-# D18 -- the model picks from the list, or picks nothing
+# The model picks from the list, or picks nothing
 
 
 def test_an_id_outside_the_closed_list_is_rejected_not_created(prepared):
     """The rule the whole lane rests on.
 
-    graphify mints a duplicate node in exactly this spot. Here the pick is
-    dropped, counted and reported, and no node is made.
+    The easy thing to do here is mint a new node. Instead the pick is dropped,
+    counted and reported, and no node is made.
     """
     _, reading, ask = prepared
     cid = only(ask, "Output")
@@ -230,7 +230,7 @@ def test_a_legal_pick_makes_exactly_one_claim_and_one_document(prepared):
 
 
 def test_everything_minted_here_is_marked_as_coming_from_a_document(prepared):
-    """D17. A sentence someone wrote must never read as a parser fact."""
+    """A sentence someone wrote must never read as a parser fact."""
     _, reading, ask = prepared
     cid = only(ask, "Output")
     got = attach.ingest(answer(ask, {cid: ask.manifest[cid]["candidates"][:1]}),

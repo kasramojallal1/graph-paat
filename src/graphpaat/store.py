@@ -1,16 +1,13 @@
 """Write the graph to disk, and read it back.
 
 Small file, but it is a seam -- the handoff between building and querying --
-and the study's flattest finding was that every problem in this kind of system
-lives between stages, not inside one. So the shape written here is the contract,
-and it is stated in one place.
+and every hard bug in this kind of system has lived between stages, not inside
+one. So the shape written here is the contract, and it is stated in one place.
 
-The one deliberate difference from graphify: **the artifact records what the
-run failed to do.** Their `graph.json` carries `nodes`, `links`, `hyperedges`
-and a commit hash -- nothing else. They compute `failed_sources`, use it
-internally in the shrink guard, and drop it (L3). Anyone reading the file a week
-later sees a graph that looks complete. Ours carries a `coverage` block, so a
-gap survives being scrolled past.
+The one rule worth stating: **the artifact records what the run failed to
+do.** A graph file that carries only nodes and edges looks complete to anyone
+reading it a week later, however much the run skipped. This one carries a
+`coverage` block, so a gap survives being scrolled past.
 """
 from __future__ import annotations
 
@@ -29,10 +26,9 @@ def out_path(root: Path, out: Path | None = None) -> Path:
     """Where the graph lives.
 
     Default is `graph-paat-out/` in the CURRENT directory, **not** inside the
-    corpus. This is graphify's #1774, which we reproduced on the first run: the
-    output is an artifact, and writing it into the tree being analysed pollutes
-    a repo the user may not own or may have checked out read-only. Our own
-    reference clone of graphify is exactly that.
+    corpus. The output is an artifact, and writing it into the tree being
+    analysed pollutes a repo the user may not own or may have checked out
+    read-only.
 
     `out` overrides it, so one machine can graph several corpora side by side.
     """
@@ -75,8 +71,7 @@ def write(root: Path, nodes: list[Node], edges: list[Edge],
         },
     }
     # Written whole then moved, so an interrupted run cannot leave a half-file
-    # that every later read fails on -- graphify's #2405 is exactly that bug in
-    # their cache, where a corrupt entry re-extracts forever.
+    # that every later read fails on.
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(payload, indent=1), encoding="utf-8")
     tmp.replace(path)

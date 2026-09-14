@@ -5,8 +5,8 @@ vocabulary (`vocab`) so the agent can turn a question into names, then matches
 those names, walks outward, and renders what it found inside a token budget.
 Nothing here calls a model, needs a key, or answers differently on two runs.
 
-**Ranking was rebuilt on 2026-09-06 against a set of 120 questions whose right
-answers were written down first.** The old rules answered 17 of them correctly.
+**Ranking was fitted against a set of 120 questions whose right answers were
+written down first.** The old rules answered 17 of them correctly.
 These answer 41. Every rule below is here because removing it costs questions,
 and the cost is recorded beside it:
 
@@ -241,7 +241,7 @@ def word_vocabulary(graph: dict) -> list[str]:
     distinct names, which nobody reads. Split those into the words they are
     made of and it is 4,500, which is a page an agent can scan.
 
-    Measured 2026-09-07: given a list this shape, an agent's term selection
+    Measured: given a list this shape, an agent's term selection
     moved the held-out score from 3/40 to 10/40 first and 3/40 to 25/40 in the
     top three. That is a larger gain than every ranking rule in this file put
     together.
@@ -307,14 +307,14 @@ def prose_for(graph: dict) -> dict[str, str]:
 def _searchable(graph: dict, claims: bool = False) -> list[tuple]:
     """Everything about a node that a question can be matched against.
 
-    The docstring is in here, and it is the one place we look that graphify does
-    not. Their scorer reads label, tokenized label, path and node id -- never the
-    prose attached to a symbol. But a question like "how are connections pooled
-    and reused" shares no word with any name in `requests`; the answer,
-    `HTTPAdapter`, says "connection pooling" in its own first line. Reading it is
-    worth 3 questions outright and 7 in the top three.
+    The docstring is in here, and it is the piece most scorers skip -- they read
+    label, path and id, never the prose attached to a symbol. But a question
+    like "how are connections pooled and reused" shares no word with any name
+    in `requests`; the answer, `HTTPAdapter`, says "connection pooling" in its
+    own first line. Reading it is worth 3 questions outright and 7 in the top
+    three.
 
-    `claims` is D19, and it is deliberately undecided. With it off, a sentence
+    `claims` is deliberately undecided. With it off, a sentence
     from a document can only raise the score of the symbol it describes -- a
     signpost. With it on, the sentence can come back as an answer in its own
     right. Both are built; the measurement chooses.
@@ -498,10 +498,10 @@ def neighbourhood(graph: dict, seeds: list[str], depth: int = 2
     return seen, travelled, hubs
 
 
-# D17: every line of an answer says where it came from. A parsed function is a
+# Every line of an answer says where it came from. A parsed function is a
 # fact; a sentence someone wrote is a claim that can be five years stale, and
 # the difference has to survive being scrolled past. It costs a few tokens on
-# every line of every answer, forever, and that was the trade Kasra took.
+# every line of every answer, forever, and that is the trade.
 PROVENANCE = {"ast": "read from code", "doc": "from a document"}
 
 
@@ -529,7 +529,7 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
            more: int = 0, per_node: int = 10) -> str:
     """The map an agent reads. Names, places, relations -- never source code.
 
-    Every line carries a provenance tag (D17). `[class - read from code]` is
+    Every line carries a provenance tag. `[class - read from code]` is
     something a parser verified this build; `[claim - from a document]` is a
     sentence a person wrote, which may have been true once.
     """
@@ -579,7 +579,7 @@ def render(graph: dict, seeds: list[str], budget: int = 2000, depth: int = 2,
             head += f"    part of: {where}"
         block = [head]
         if node["kind"] == "claim" and node.get("text"):
-            # A claim returned as an answer in its own right (D19) has to show
+            # A claim returned as an answer in its own right has to show
             # what it says -- its heading is not the answer, its sentence is.
             block.append(f'    "{" ".join(node["text"].split())[:200]}"')
 

@@ -8,17 +8,15 @@ reading English gets you there.
 **So a model does it, and the model is the one already running the tool.** This
 holds no API key and calls no provider. The tool writes down what needs reading;
 the assistant reads it and writes its answer back; the tool ingests the answer.
-The vocabulary step works the same way, and so does graphify, which is why
-neither needs a key.
+The vocabulary step works the same way, which is why neither needs a key.
 
 **The model may not type an identifier.** It is handed a closed list of names
 that already exist in the graph and must pick from it or pick nothing. This is
 the single most important rule in this file. The two lanes join on exact id
 string match, so an id that is *nearly* right does not produce a nearly-right
 graph -- it produces a second node that nothing will ever reconcile with the
-first. graphify mints duplicates in exactly this spot. A document about
-something not in the graph attaches to nothing, and that is the correct answer,
-not a failure.
+first. A document about something not in the graph attaches to nothing, and
+that is the correct answer, not a failure.
 
 **A claim never becomes a fact.** Everything minted here carries `origin="doc"`,
 which survives into the store and into the rendered answer, so a sentence
@@ -51,8 +49,8 @@ MAX_CANDIDATES = 12
 # symbols fit, so showing them costs tokens to be told nothing.
 #
 # **Why this is not simply MAX_CANDIDATES.** It was, and one threshold behaved
-# completely differently on two real repositories: at 12 it dropped 8% of
-# graphify's passages and 44% of sympy's, because sympy documents mathematics
+# completely differently on two real repositories: at 12 it dropped 8% of one
+# project's passages and 44% of sympy's, because sympy documents mathematics
 # and names far more symbols per page. Dropping 44% would have thrown away real
 # explanations. So the menu is *ranked and truncated* in the ordinary case, and
 # only a genuine index is dropped.
@@ -69,11 +67,10 @@ ASK_SECTION_CHARS = 700
 # Things that look like identifiers when they appear in prose.
 #
 # Three separate readers, because a project writes a symbol name three ways and
-# missing any one of them loses the passages that matter most. Found 2026-09-09
-# by the independent checker, not by any test here: graphify's ARCHITECTURE.md
-# describes its whole pipeline as `detect() -> extract() -> build() ->
-# cluster()` inside a fenced block, and NONE of those four names reached the
-# candidate list. A single-line backtick rule cannot see inside a fence, and a
+# missing any one of them loses the passages that matter most. Found by hand,
+# not by any test here: one project's ARCHITECTURE.md describes its whole
+# pipeline as `detect() -> extract() -> build() -> cluster()` inside a fenced
+# block, and NONE of those four names reached the candidate list. A single-line backtick rule cannot see inside a fence, and a
 # bare lowercase word is not CamelCase or snake_case so the prose rule dropped
 # it too. The passage most about the codebase was the one we could not read.
 _FENCED = re.compile(r"```[^\n]*\n(.*?)```", re.S)
@@ -87,7 +84,7 @@ _CALLED = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 #
 # The prose budget caps what is *read off disk*; this caps what is *put to the
 # model*, and they are different numbers because a passage costs its own text
-# plus a menu of candidates. Measured 2026-09-09: sympy's uncapped ask is
+# plus a menu of candidates. Measured: sympy's uncapped ask is
 # 363,000 tokens, which is more than most agents will spend on a whole session.
 #
 # Passages are spent strongest-first -- the ones whose subject is named in the
@@ -391,7 +388,7 @@ def ingest(answer: dict, manifest: dict, reading: Reading) -> Ingested:
     once.
 
     **Anything outside the closed list is discarded**, counted, and reported --
-    never created. This is D18, and it is the whole point of the stage.
+    never created. That is the whole point of the stage.
     """
     picks = answer.get("picks") or {}
     rejected: dict[str, int] = defaultdict(int)
@@ -461,9 +458,8 @@ def ingest(answer: dict, manifest: dict, reading: Reading) -> Ingested:
 def load_answer(path: Path, digest: str) -> tuple[dict, str]:
     """Read the answer file, refusing one written against a different ask.
 
-    Content-addressing rather than invalidation, which is the one idea worth
-    taking from graphify's cache: a stale answer is unrepresentable instead of
-    being something a later stage has to notice.
+    Content-addressing rather than invalidation: a stale answer is
+    unrepresentable instead of being something a later stage has to notice.
     """
     if not path.exists():
         return {}, f"no answer yet at {path}"

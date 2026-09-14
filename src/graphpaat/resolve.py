@@ -7,15 +7,14 @@ from the file's imports, its variable assignments, and the class a method
 belongs to. Nothing here guesses -- an edge is only emitted when the target
 exists as a node.
 
-**Refusal.** D6: what we could not resolve is recorded with a reason rather
-than dropped. Issue #1219's reporter put the problem exactly -- *"the absence
-of a `calls` edge cannot be trusted"* -- and L3 confirmed graphify's artifact
-carries no record of what a run failed to do.
+**Refusal.** What we could not resolve is recorded with a reason rather than
+dropped. Without that record, the absence of a `calls` edge cannot be trusted:
+a missing edge could mean "nobody calls this" or "we failed to look".
 
-One filter, and it is a judgement worth stating. The L4 rebuild found 9,100
-unresolved calls on this corpus, and most receivers were dicts and lists
+One filter, and it is a judgement worth stating. A first pass found 9,100
+unresolved calls on one corpus, and most receivers were dicts and lists
 calling built-in methods -- `data.get()`, `lines.append()`. Emitting those as
-edges would drown the map D2 has to keep inside a token budget, and they point
+edges would drown a map that has to fit inside a token budget, and they point
 at nothing: `dict.get` is not in the corpus. So an UNRESOLVED edge is emitted
 only when a symbol of that name EXISTS somewhere in the corpus -- meaning we
 know a plausible target and failed to prove the link. Everything else is
@@ -39,8 +38,8 @@ BUILTIN_NAMES = frozenset(dir(builtins))
 # `dict.get` -- not a corpus symbol that happens to share the name.
 #
 # These names are still COUNTED as refusals, so the coverage report stays
-# honest; they are simply not drawn as gap markers in the graph. Measured
-# 2026-09-02: they were 67% of the gap markers on `requests`, 30% on Django.
+# honest; they are simply not drawn as gap markers in the graph. Measured:
+# they were 67% of the gap markers on `requests`, 30% on Django.
 # A gap marker that appears on every ordinary dictionary access teaches an
 # agent nothing and crowds out the ones that mean something.
 #
@@ -296,7 +295,7 @@ def resolve(files: list[ParsedFile]) -> tuple[list[Edge], Counter]:
                     refuse(site, "receiver is a self attribute of unknown type")
                 continue
 
-            # ---- x.foo()  -- D1, receiver typing ----------------------
+            # ---- x.foo()  -- receiver typing --------------------------
             if site.receiver is not None:
                 cls = _var_type(parsed, site.receiver)
                 if cls is None:

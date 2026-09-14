@@ -229,7 +229,7 @@ class TestNestedFunctions:
     axios settles a request in `done()` declared inside the XHR adapter and
     measures a body in `getBodyLength`, a const inside the fetch adapter.
     Neither name appears at the file's top level. Reading only the top level
-    left symbols like these out of the map entirely -- measured 2026-09-08 on
+    left symbols like these out of the map entirely -- measured on
     two corpora, that one shape was most of the gap between what the files
     declare and what the graph held.
     """

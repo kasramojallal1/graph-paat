@@ -88,7 +88,7 @@ class TestRender:
         assert "part of" in out or "called by" in out
 
     def test_docstrings_are_marked_as_claims_not_facts(self, corpus, tmp_path):
-        """A docstring is a claim -- and D17 says where the claim came from.
+        """A docstring is a claim -- and every line says where a claim came from.
 
         A docstring is prose, so it is a claim; but a parser read it out of the
         source file this build, which is a stronger statement than a sentence

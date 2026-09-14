@@ -22,7 +22,7 @@ the parser checked today. That is the failure the marks exist to prevent, so
 the text spends four lines on it.
 
 **Why the vocabulary step is written as an order rather than a suggestion.**
-Measured 2026-09-07 over 40 questions on four libraries averaging 700,000
+Measured over 40 questions on four libraries averaging 700,000
 lines: an agent that picks its search terms from the graph's own word list
 first scores 10 first places against 3, and 25 in the top three against 3. That
 is a larger gain than every ranking rule in `query.py` put together, and it is

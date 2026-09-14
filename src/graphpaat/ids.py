@@ -1,14 +1,12 @@
 """Node identity.
 
-Everything in graph-paat depends on this file. The study's headline finding was
-that the two extraction lanes join on *exact id string match* -- so an id that
-is slightly wrong does not cause a slightly wrong graph, it causes a duplicate
-node that nothing will ever reconcile.
+Everything in graph-paat depends on this file. The two extraction lanes join
+on *exact id string match* -- so an id that is slightly wrong does not cause a
+slightly wrong graph, it causes a duplicate node that nothing will ever
+reconcile.
 
-The rules below were not read out of graphify's source. They were derived in
-the L4 rebuild by fitting graphify's real graph.json: mint an id, compare it to
-theirs, find the rule that explains the difference, repeat. Getting all four
-right moved agreement with their graph from 19% to 78%.
+Each rule below was fitted against real corpora: mint an id, look at what
+collided or split, find the rule that explains it, repeat.
 """
 from __future__ import annotations
 
@@ -18,11 +16,10 @@ from pathlib import Path
 def normalise(part: str) -> str:
     """Lowercase. Underscores are kept, because they carry meaning.
 
-    ⚠ This changed on 2026-09-01, and the reason is measured. It used to strip
-    underscores from both ends, copying graphify -- a rule we fitted against
-    their real graph in the L4 rebuild.
+    This used to strip underscores from both ends, and the reason it no longer
+    does is measured.
 
-    That rule destroys a standard Python idiom. Django writes a public entry
+    Stripping destroys a standard Python idiom. Django writes a public entry
     point that delegates to a private implementation:
 
         def changeform_view(self, ...):        # options.py:1817
@@ -30,13 +27,12 @@ def normalise(part: str) -> str:
         def _changeform_view(self, ...):       # options.py:1821
 
     Two different methods. Stripping underscores minted one id for both and one
-    was lost. That cost 3 nodes on graphify's dict-heavy source and **197 on
-    Django**, where the idiom is everywhere.
+    was lost. That cost **197 symbols on Django**, where the idiom is everywhere.
 
-    graphify strips them so a language model can reproduce an id from memory --
-    forgiving of a near-miss on a private name. D9 means we do not need that:
-    our `vocab` command hands the agent the exact spelling, so we were paying
-    their cost without needing their benefit.
+    The argument for stripping is that a language model can then reproduce an
+    id from memory, forgiving of a near-miss on a private name. We do not need
+    that: the `vocab` command hands the agent the exact spelling, so stripping
+    was paying a cost for a benefit nothing here uses.
 
     Path components keep their own rule; see `file_prefix`.
     """
@@ -57,15 +53,14 @@ def normalise_path_part(part: str) -> str:
 def file_prefix(path: Path, root: Path, keep_extension: bool = False) -> str:
     """The id prefix for a file: its path relative to root.
 
-        graphify/affected.py          -> affected
-        graphify/extractors/models.py -> extractors_models
-        graphify/__main__.py          -> main
-        graphify/_minhash.py          -> minhash
+        pkg/resolve.py                -> resolve
+        pkg/languages/python.py       -> languages_python
+        pkg/__main__.py               -> main
+        pkg/_private.py               -> private
 
     Using the whole relative path rather than just the filename is what keeps
-    `a/utils.py` and `b/utils.py` from minting the same ids. The L4 rebuild used
-    the filename alone and that single mistake accounted for most of its
-    disagreement with graphify.
+    `a/utils.py` and `b/utils.py` from minting the same ids. An early version
+    used the filename alone, and that single mistake was most of its errors.
 
     `keep_extension` keeps the extension as a final segment:
 
@@ -75,7 +70,7 @@ def file_prefix(path: Path, root: Path, keep_extension: bool = False) -> str:
     Dropping the extension assumes one file per name, and that assumption holds
     for most languages. Where a language pairs a definition file with a
     declaration file of the same name it is simply false, and the cost is not
-    small: measured 2026-09-07, curl's `lib/` loses **159 of 385 files** to a
+    small: measured on curl, `lib/` loses **159 of 385 files** to a
     name two files claim, and redis `src/` loses 67 of 218. A third of the
     corpus would arrive as duplicate nodes sharing one id.
 
@@ -100,12 +95,12 @@ def mint(prefix: str, label: str, scope: list[str] | None = None) -> str:
       def outer: def add_edge    -> ..._outer_add_edge
       def other: def add_edge    -> ..._other_add_edge
 
-    graphify qualifies methods by their class but does not emit nested
-    functions at all, so it never had to answer the second case. We emit them
-    (a nested helper can do real work and being invisible is worse than being
-    verbose), which means we have to qualify them or they collide -- on
-    graphify's own source, `extract.py` has three nested `add_edge`/`_add_edge`
-    definitions that mint one id without this.
+    Qualifying methods by their class is the usual choice; qualifying nested
+    functions is the less usual one, because many tools do not emit nested
+    functions at all. We emit them (a nested helper can do real work and being
+    invisible is worse than being verbose), which means we have to qualify them
+    or they collide -- one real extractor module has three nested
+    `add_edge`/`_add_edge` helpers that mint one id without this.
     """
     parts = [prefix]
     for s in (scope or []):
@@ -117,13 +112,13 @@ def mint(prefix: str, label: str, scope: list[str] | None = None) -> str:
 class Collisions:
     """Records ids claimed by more than one symbol.
 
-    graphify has a three-branch collision reporter (`dedup.py`) that is silent
-    in exactly one case: same file, same label. That is the case where a
-    genuinely distinct function is destroyed -- `detect.py` defines `_nfc` at
-    both L970 and L1865, and their graph contains only the first.
+    The case that is easiest to miss is same file, same label. That is the
+    case where a genuinely distinct function is destroyed -- a module that
+    defines `_nfc` twice, nine hundred lines apart, keeps only the first unless
+    someone counts.
 
-    D7 decided we keep their id scheme and report what it loses. This class is
-    that report. It does not fix the merge; it makes the merge visible.
+    The id scheme is kept and what it loses is reported. This class is that
+    report. It does not fix the merge; it makes the merge visible.
     """
 
     def __init__(self) -> None:

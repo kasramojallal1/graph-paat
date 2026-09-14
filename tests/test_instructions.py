@@ -33,7 +33,7 @@ class TestBlock:
     def test_stays_small_enough_to_carry_on_every_turn(self):
         # It is loaded into an assistant's context constantly.
         #
-        # Raised from 2,200 on 2026-09-09, and the increase is the whole cost of
+        # Raised from 2,200, and the increase is the whole cost of
         # the document lane in an agent's context: four lines saying `--deep`
         # exists, and three explaining what a provenance tag means. The tool
         # prints the full two-step procedure itself on the first run, so none of
